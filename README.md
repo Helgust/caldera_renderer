@@ -1,0 +1,2 @@
+This is small graphics sample, based on https://github.com/Helgust/Mastering-Graphics-Programming-with-Vulkan repo
+I slightly change it to use it as base for follow the book, and evolve this sample into something bigger.

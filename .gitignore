@@ -1,0 +1,35 @@
+# build
+/[Bb]uild/
+/[Bb]in/
+/debug/
+/release/
+
+# shaders
+*.spv
+
+# vscode
+.vscode
+*.code-workspace
+
+# git folders
+**/.git
+
+# external dependencies
+external/
+
+# clangd
+compile_commands.json
+
+# generated textures
+*.ktx2
+*.dds
+*.basis
+
+# cmake dependencies
+**/_deps/
+
+# cmake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+.cache
