@@ -28,8 +28,9 @@
 
 VkInstance instance{VK_NULL_HANDLE};
 VkDevice device{VK_NULL_HANDLE};
-VkQueue queue{ VK_NULL_HANDLE };
-VmaAllocator allocator{ VK_NULL_HANDLE };
+VkQueue queue{VK_NULL_HANDLE};
+VmaAllocator allocator{VK_NULL_HANDLE};
+VkSurfaceKHR surface{VK_NULL_HANDLE};
 
 static inline void chk(VkResult result) {
   if (result != VK_SUCCESS) {
@@ -133,19 +134,26 @@ int main(int argc, char* argv[]) {
   chk(vkCreateDevice(devices[deviceIndex], &deviceCI, nullptr, &device));
   vkGetDeviceQueue(device, queueFamily, 0, &queue);
 
-	// VMA
-		VmaVulkanFunctions vkFunctions{
-			.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
-			.vkGetDeviceProcAddr = vkGetDeviceProcAddr,
-			.vkCreateImage = vkCreateImage
-	};
-	VmaAllocatorCreateInfo allocatorCI{
-			.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT, 
-			.physicalDevice = devices[deviceIndex],
-			.device = device,
-			.pVulkanFunctions = &vkFunctions,
-			.instance = instance
-	};
-	chk(vmaCreateAllocator(&allocatorCI, &allocator));
+  // VMA
+  VmaVulkanFunctions vkFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+                                 .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+                                 .vkCreateImage = vkCreateImage};
+  VmaAllocatorCreateInfo allocatorCI{
+      .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+      .physicalDevice = devices[deviceIndex],
+      .device = device,
+      .pVulkanFunctions = &vkFunctions,
+      .instance = instance};
+  chk(vmaCreateAllocator(&allocatorCI, &allocator));
+
+  //Window
+  SDL_Window* window =
+      SDL_CreateWindow("Caldera Renderer", 1280u, 720u,
+                       SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+  assert(window);
+  chk(SDL_Vulkan_CreateSurface(window, instance, nullptr, &surface));
+  VkSurfaceCapabilitiesKHR surfaceCaps{};
+  chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[deviceIndex], surface,
+                                                &surfaceCaps));
   return 0;
 }
