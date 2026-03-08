@@ -28,6 +28,7 @@
 
 VkInstance instance{VK_NULL_HANDLE};
 VkDevice device{VK_NULL_HANDLE};
+VkQueue queue{ VK_NULL_HANDLE };
 
 static inline void chk(VkResult result) {
   if (result != VK_SUCCESS) {
@@ -63,6 +64,7 @@ int main(int argc, char* argv[]) {
   chk(vkCreateInstance(&instanceCI, nullptr, &instance));
   volkLoadInstance(instance);
 
+  // Device
   uint32_t deviceCount{0};
   chk(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr));
   std::vector<VkPhysicalDevice> devices(deviceCount);
@@ -84,6 +86,7 @@ int main(int argc, char* argv[]) {
   std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
   vkGetPhysicalDeviceQueueFamilyProperties(
       devices[deviceIndex], &queueFamilyCount, queueFamilies.data());
+  // Find a queue family for graphics
   uint32_t queueFamily{0};
   for (size_t i = 0; i < queueFamilies.size(); i++) {
     if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
@@ -93,12 +96,40 @@ int main(int argc, char* argv[]) {
   }
   chk(SDL_Vulkan_GetPresentationSupport(instance, devices[deviceIndex],
                                         queueFamily));
+  // Logical device
   const float qfpriorities{1.0f};
   VkDeviceQueueCreateInfo queueCI{
       .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
       .queueFamilyIndex = queueFamily,
       .queueCount = 1,
       .pQueuePriorities = &qfpriorities};
+  VkPhysicalDeviceVulkan12Features enabledVk12Features{
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+      .descriptorIndexing = true,
+      .shaderSampledImageArrayNonUniformIndexing = true,
+      .descriptorBindingVariableDescriptorCount = true,
+      .runtimeDescriptorArray = true,
+      .bufferDeviceAddress = true};
+  const VkPhysicalDeviceVulkan13Features enabledVk13Features{
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+      .pNext = &enabledVk12Features,
+      .synchronization2 = true,
+      .dynamicRendering = true,
+  };
+  const std::vector<const char*> deviceExtensions{
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  const VkPhysicalDeviceFeatures enabledVk10Features{.samplerAnisotropy =
+                                                         VK_TRUE};
 
+  VkDeviceCreateInfo deviceCI{
+      .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+      .pNext = &enabledVk13Features,
+      .queueCreateInfoCount = 1,
+      .pQueueCreateInfos = &queueCI,
+      .enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()),
+      .ppEnabledExtensionNames = deviceExtensions.data(),
+      .pEnabledFeatures = &enabledVk10Features};
+  chk(vkCreateDevice(devices[deviceIndex], &deviceCI, nullptr, &device));
+  vkGetDeviceQueue(device, queueFamily, 0, &queue);
   return 0;
 }
