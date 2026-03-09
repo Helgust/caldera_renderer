@@ -31,6 +31,9 @@ VkDevice device{VK_NULL_HANDLE};
 VkQueue queue{VK_NULL_HANDLE};
 VmaAllocator allocator{VK_NULL_HANDLE};
 VkSurfaceKHR surface{VK_NULL_HANDLE};
+VkSwapchainKHR swapchain{VK_NULL_HANDLE};
+std::vector<VkImage> swapchainImages;
+std::vector<VkImageView> swapchainImageViews;
 
 static inline void chk(VkResult result) {
   if (result != VK_SUCCESS) {
@@ -155,5 +158,41 @@ int main(int argc, char* argv[]) {
   VkSurfaceCapabilitiesKHR surfaceCaps{};
   chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[deviceIndex], surface,
                                                 &surfaceCaps));
+
+  //Swapchain
+  const VkFormat imageFormat{VK_FORMAT_B8G8R8A8_SRGB};
+  VkSwapchainCreateInfoKHR swapchainCI{
+      .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+      .surface = surface,
+      .minImageCount = surfaceCaps.minImageCount,
+      .imageFormat = imageFormat,
+      .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+      .imageExtent{.width = surfaceCaps.currentExtent.width,
+                   .height = surfaceCaps.currentExtent.height},
+      .imageArrayLayers = 1,
+      .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+      .preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+      .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+      .presentMode = VK_PRESENT_MODE_FIFO_KHR};
+  chk(vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapchain));
+  uint32_t imageCount{0};
+  chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr));
+  swapchainImages.resize(imageCount);
+  chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount,
+                              swapchainImages.data()));
+  swapchainImageViews.resize(imageCount);
+
+  for (auto i = 0; i < imageCount; i++) {
+    VkImageViewCreateInfo viewCI{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = swapchainImages[i],
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .format = imageFormat,
+        .subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                          .levelCount = 1,
+                          .layerCount = 1}};
+    chk(vkCreateImageView(device, &viewCI, nullptr, &swapchainImageViews[i]));
+  }
+
   return 0;
 }
