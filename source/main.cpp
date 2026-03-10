@@ -26,6 +26,12 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "tiny_gltf.h"
 
+struct Vertex {
+  glm::vec3 pos;
+  glm::vec3 normal;
+  glm::vec2 uv;
+};
+
 VkInstance instance{VK_NULL_HANDLE};
 VkDevice device{VK_NULL_HANDLE};
 VkQueue queue{VK_NULL_HANDLE};
@@ -34,6 +40,12 @@ VkSurfaceKHR surface{VK_NULL_HANDLE};
 VkSwapchainKHR swapchain{VK_NULL_HANDLE};
 std::vector<VkImage> swapchainImages;
 std::vector<VkImageView> swapchainImageViews;
+glm::ivec2 windowSize{};
+VkImage depthImage;
+VmaAllocation depthImageAllocation;
+VkImageView depthImageView;
+VmaAllocation vBufferAllocation{VK_NULL_HANDLE};
+VkBuffer vBuffer{VK_NULL_HANDLE};
 
 static inline void chk(VkResult result) {
   if (result != VK_SUCCESS) {
@@ -238,5 +250,133 @@ int main(int argc, char* argv[]) {
                         .layerCount = 1}};
   chk(vkCreateImageView(device, &depthViewCI, nullptr, &depthImageView));
 
+  const char* input_filename = "assets/damaged_helmet/damaged_helmet.gltf";
+  //Mesh loading
+  tinygltf::Model model;
+  tinygltf::TinyGLTF loader;
+  std::string ext = tinygltf::GetFilePathExtension(input_filename);
+
+  std::string err;
+  std::string warn;
+  std::vector<Vertex> vertices{};
+  std::vector<uint16_t> indices{};
+
+  bool ret = false;
+  if (ext.compare("glb") == 0) {
+    // assume binary glTF.
+    ret = loader.LoadBinaryFromFile(&model, &err, &warn, input_filename);
+  } else {
+    // assume ascii glTF.
+    ret = loader.LoadASCIIFromFile(&model, &err, &warn, input_filename);
+  }
+
+  if (!warn.empty()) {
+    std::cout << "Warn: " << warn << std::endl;
+  }
+
+  if (!err.empty()) {
+    std::cerr << "Err: " << err << std::endl;
+  }
+
+  if (!ret) {
+    std::cerr << "Failed to load glTF\n";
+    return -1;
+  }
+
+  std::cout << "Loaded model with " << model.meshes.size() << " meshes\n";
+
+  const tinygltf::Mesh& mesh = model.meshes[0];
+  const tinygltf::Primitive& primitive = mesh.primitives[0];
+  const tinygltf::Accessor& posAccessor =
+      model.accessors[primitive.attributes.find("POSITION")->second];
+
+  const tinygltf::BufferView& posView =
+      model.bufferViews[posAccessor.bufferView];
+
+  const tinygltf::Buffer& posBuffer = model.buffers[posView.buffer];
+
+  const float* positions = reinterpret_cast<const float*>(
+      &posBuffer.data[posView.byteOffset + posAccessor.byteOffset]);
+
+  const tinygltf::Accessor& normalAccessor =
+      model.accessors[primitive.attributes.find("NORMAL")->second];
+
+  const tinygltf::BufferView& normalView =
+      model.bufferViews[normalAccessor.bufferView];
+
+  const tinygltf::Buffer& normalBuffer = model.buffers[normalView.buffer];
+
+  const float* normals = reinterpret_cast<const float*>(
+      &normalBuffer.data[normalView.byteOffset + normalAccessor.byteOffset]);
+  const tinygltf::Accessor& uvAccessor =
+      model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
+
+  const tinygltf::BufferView& uvView = model.bufferViews[uvAccessor.bufferView];
+
+  const tinygltf::Buffer& uvBuffer = model.buffers[uvView.buffer];
+
+  const float* uvs = reinterpret_cast<const float*>(
+      &uvBuffer.data[uvView.byteOffset + uvAccessor.byteOffset]);
+
+  size_t vertexCount = posAccessor.count;
+
+  vertices.resize(vertexCount);
+
+  for (size_t i = 0; i < vertexCount; i++) {
+    vertices[i].pos = {positions[i * 3 + 0], positions[i * 3 + 1],
+                       positions[i * 3 + 2]};
+
+    vertices[i].normal = {normals[i * 3 + 0], normals[i * 3 + 1],
+                          normals[i * 3 + 2]};
+
+    vertices[i].uv = {uvs[i * 2 + 0], uvs[i * 2 + 1]};
+  }
+
+  const tinygltf::Accessor& indexAccessor = model.accessors[primitive.indices];
+
+  const tinygltf::BufferView& indexView =
+      model.bufferViews[indexAccessor.bufferView];
+
+  const tinygltf::Buffer& indexBuffer = model.buffers[indexView.buffer];
+
+  indices.resize(indexAccessor.count);
+
+  const void* dataPtr =
+      &indexBuffer.data[indexView.byteOffset + indexAccessor.byteOffset];
+
+  if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+
+    const uint16_t* buf = reinterpret_cast<const uint16_t*>(dataPtr);
+
+    for (size_t i = 0; i < indexAccessor.count; i++)
+      indices[i] = buf[i];
+
+  } else if (indexAccessor.componentType ==
+             TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+
+    const uint32_t* buf = reinterpret_cast<const uint32_t*>(dataPtr);
+
+    for (size_t i = 0; i < indexAccessor.count; i++)
+      indices[i] = buf[i];
+  }
+  const VkDeviceSize indexCount{indexAccessor.count};
+  VkDeviceSize vBufSize{sizeof(Vertex) * vertices.size()};
+  VkDeviceSize iBufSize{sizeof(uint16_t) * indices.size()};
+  VkBufferCreateInfo bufferCI{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                              .size = vBufSize + iBufSize,
+                              .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                       VK_BUFFER_USAGE_INDEX_BUFFER_BIT};
+
+  VmaAllocationCreateInfo vBufferAllocCI{
+      .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+               VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT |
+               VMA_ALLOCATION_CREATE_MAPPED_BIT,
+      .usage = VMA_MEMORY_USAGE_AUTO};
+  VmaAllocationInfo vBufferAllocInfo{};
+  chk(vmaCreateBuffer(allocator, &bufferCI, &vBufferAllocCI, &vBuffer,
+                      &vBufferAllocation, &vBufferAllocInfo));
+  memcpy(vBufferAllocInfo.pMappedData, vertices.data(), vBufSize);
+  memcpy(((char*)vBufferAllocInfo.pMappedData) + vBufSize, indices.data(),
+         iBufSize);
   return 0;
 }
