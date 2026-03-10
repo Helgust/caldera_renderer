@@ -185,6 +185,7 @@ int main(int argc, char* argv[]) {
                        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
   assert(window);
   chk(SDL_Vulkan_CreateSurface(window, instance, nullptr, &surface));
+  chk(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
   VkSurfaceCapabilitiesKHR surfaceCaps{};
   chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[deviceIndex], surface,
                                                 &surfaceCaps));
