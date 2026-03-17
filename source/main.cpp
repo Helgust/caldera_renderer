@@ -50,6 +50,8 @@ VkBuffer vBuffer{VK_NULL_HANDLE};
 std::vector<VkSemaphore> renderSemaphores;
 std::array<VkFence, maxFramesInFlight> fences;
 std::array<VkSemaphore, maxFramesInFlight> presentSemaphores;
+VkCommandPool commandPool{VK_NULL_HANDLE};
+std::array<VkCommandBuffer, maxFramesInFlight> commandBuffers;
 
 struct ShaderData {
   glm::mat4 projection;
@@ -436,5 +438,16 @@ int main(int argc, char* argv[]) {
   for (auto& semaphore : renderSemaphores) {
     chk(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
   }
+  // Command pool
+  VkCommandPoolCreateInfo commandPoolCI{
+      .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+      .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+      .queueFamilyIndex = queueFamily};
+  chk(vkCreateCommandPool(device, &commandPoolCI, nullptr, &commandPool));
+  VkCommandBufferAllocateInfo cbAllocCI{
+      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+      .commandPool = commandPool,
+      .commandBufferCount = maxFramesInFlight};
+  chk(vkAllocateCommandBuffers(device, &cbAllocCI, commandBuffers.data()));
   return 0;
 }
