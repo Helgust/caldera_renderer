@@ -47,6 +47,9 @@ VmaAllocation depthImageAllocation;
 VkImageView depthImageView;
 VmaAllocation vBufferAllocation{VK_NULL_HANDLE};
 VkBuffer vBuffer{VK_NULL_HANDLE};
+std::vector<VkSemaphore> renderSemaphores;
+std::array<VkFence, maxFramesInFlight> fences;
+std::array<VkSemaphore, maxFramesInFlight> presentSemaphores;
 
 struct ShaderData {
   glm::mat4 projection;
@@ -418,6 +421,20 @@ int main(int argc, char* argv[]) {
         .buffer = shaderDataBuffers[i].buffer};
     shaderDataBuffers[i].deviceAddress =
         vkGetBufferDeviceAddress(device, &uBufferBdaInfo);
+  }
+  // Sync objects
+  VkSemaphoreCreateInfo semaphoreCI{
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+  VkFenceCreateInfo fenceCI{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+                            .flags = VK_FENCE_CREATE_SIGNALED_BIT};
+  for (auto i = 0; i < maxFramesInFlight; i++) {
+    chk(vkCreateFence(device, &fenceCI, nullptr, &fences[i]));
+    chk(vkCreateSemaphore(device, &semaphoreCI, nullptr,
+                          &presentSemaphores[i]));
+  }
+  renderSemaphores.resize(swapchainImages.size());
+  for (auto& semaphore : renderSemaphores) {
+    chk(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
   }
   return 0;
 }
