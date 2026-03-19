@@ -1,3 +1,4 @@
+#include <cstdint>
 #define VOLK_IMPLEMENTATION
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
@@ -52,6 +53,15 @@ std::array<VkFence, maxFramesInFlight> fences;
 std::array<VkSemaphore, maxFramesInFlight> presentSemaphores;
 VkCommandPool commandPool{VK_NULL_HANDLE};
 std::array<VkCommandBuffer, maxFramesInFlight> commandBuffers;
+
+struct Texture {
+  VmaAllocation allocation{VK_NULL_HANDLE};
+  VkImage image{VK_NULL_HANDLE};
+  VkImageView view{VK_NULL_HANDLE};
+  VkSampler sampler{VK_NULL_HANDLE};
+};
+
+std::vector<Texture> textures;
 
 struct ShaderData {
   glm::mat4 projection;
@@ -449,5 +459,145 @@ int main(int argc, char* argv[]) {
       .commandPool = commandPool,
       .commandBufferCount = maxFramesInFlight};
   chk(vkAllocateCommandBuffers(device, &cbAllocCI, commandBuffers.data()));
+  std::vector<VkDescriptorImageInfo> textureDescriptors{};
+  textures.resize(model.images.size());
+  for (size_t i = 0; i < model.images.size(); i++) {
+    const int mipLevelsCount = 1;
+    const tinygltf::Image& img = model.images[i];
+    std::cout << "Image: " << img.width << "x" << img.height << "\n";
+    VkImageCreateInfo texImgCI{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = VK_FORMAT_R8G8B8A8_SRGB,
+        .extent{(uint32_t)img.width, (uint32_t)img.height, 1},
+        .mipLevels = mipLevelsCount,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    };
+    VmaAllocationCreateInfo texImageAllocCI{
+        .usage = VMA_MEMORY_USAGE_AUTO,
+    };
+
+    chk(vmaCreateImage(allocator, &texImgCI, &texImageAllocCI,
+                       &textures[i].image, &textures[i].allocation, nullptr));
+
+    VkImageViewCreateInfo texVewCI{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = textures[i].image,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .format = texImgCI.format,
+        .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                             .levelCount = mipLevelsCount,
+                             .layerCount = 1}};
+    chk(vkCreateImageView(device, &texVewCI, nullptr, &textures[i].view));
+
+    // Upload
+    VkBuffer imgSrcBuffer{};
+    VmaAllocation imgSrcAllocation{};
+    VkBufferCreateInfo imgSrcBufferCI{
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size = (uint32_t)img.image.size(),
+        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT};
+    VmaAllocationCreateInfo imgSrcAllocCI{
+        .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+                 VMA_ALLOCATION_CREATE_MAPPED_BIT,
+        .usage = VMA_MEMORY_USAGE_AUTO};
+    VmaAllocationInfo imgSrcAllocInfo{};
+    chk(vmaCreateBuffer(allocator, &imgSrcBufferCI, &imgSrcAllocCI,
+                        &imgSrcBuffer, &imgSrcAllocation, &imgSrcAllocInfo));
+    memcpy(imgSrcAllocInfo.pMappedData, img.image.data(), img.image.size());
+    VkFenceCreateInfo fenceOneTimeCI{.sType =
+                                         VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+    VkFence fenceOneTime{};
+    chk(vkCreateFence(device, &fenceOneTimeCI, nullptr, &fenceOneTime));
+    VkCommandBuffer cbOneTime{};
+    VkCommandBufferAllocateInfo cbOneTimeAI{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = commandPool,
+        .commandBufferCount = 1};
+    chk(vkAllocateCommandBuffers(device, &cbOneTimeAI, &cbOneTime));
+
+    VkCommandBufferBeginInfo cbOneTimeBI{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+    chk(vkBeginCommandBuffer(cbOneTime, &cbOneTimeBI));
+    VkImageMemoryBarrier2 barrierTexImage{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+        .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+        .srcAccessMask = VK_ACCESS_2_NONE,
+        .dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .image = textures[i].image,
+        .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                             .levelCount = mipLevelsCount,
+                             .layerCount = 1}};
+
+    VkDependencyInfo barrierTexInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                                    .imageMemoryBarrierCount = 1,
+                                    .pImageMemoryBarriers = &barrierTexImage};
+
+    vkCmdPipelineBarrier2(cbOneTime, &barrierTexInfo);
+    std::vector<VkBufferImageCopy> copyRegions{};
+    for (auto j = 0; j < mipLevelsCount; j++) {
+      copyRegions.push_back({
+          .bufferOffset = 0,
+          .imageSubresource{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                            .mipLevel = (uint32_t)j,
+                            .layerCount = 1},
+          .imageExtent{.width = (uint32_t)img.width >> j,
+                       .height = (uint32_t)img.height >> j,
+                       .depth = 1},
+      });
+    }
+
+    vkCmdCopyBufferToImage(cbOneTime, imgSrcBuffer, textures[i].image,
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           static_cast<uint32_t>(copyRegions.size()),
+                           copyRegions.data());
+    VkImageMemoryBarrier2 barrierTexRead{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+        .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+        .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .newLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+        .image = textures[i].image,
+        .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                             .levelCount = mipLevelsCount,
+                             .layerCount = 1}};
+    barrierTexInfo.pImageMemoryBarriers = &barrierTexRead;
+    vkCmdPipelineBarrier2(cbOneTime, &barrierTexInfo);
+    chk(vkEndCommandBuffer(cbOneTime));
+    VkSubmitInfo oneTimeSI{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                           .commandBufferCount = 1,
+                           .pCommandBuffers = &cbOneTime};
+    chk(vkQueueSubmit(queue, 1, &oneTimeSI, fenceOneTime));
+    chk(vkWaitForFences(device, 1, &fenceOneTime, VK_TRUE, UINT64_MAX));
+    vkDestroyFence(device, fenceOneTime, nullptr);
+    vmaDestroyBuffer(allocator, imgSrcBuffer, imgSrcAllocation);
+
+    // Sampler
+    VkSamplerCreateInfo samplerCI{
+        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+        .magFilter = VK_FILTER_LINEAR,
+        .minFilter = VK_FILTER_LINEAR,
+        .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+        .anisotropyEnable = VK_TRUE,
+        .maxAnisotropy = 8.0f,
+        .maxLod = (float)mipLevelsCount,
+    };
+    chk(vkCreateSampler(device, &samplerCI, nullptr, &textures[i].sampler));
+    //ktxTexture_Destroy(ktxTexture);
+    textureDescriptors.push_back(
+        {.sampler = textures[i].sampler,
+         .imageView = textures[i].view,
+         .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+  }
   return 0;
 }
