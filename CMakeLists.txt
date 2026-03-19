@@ -89,6 +89,10 @@ target_compile_definitions(${NAME} PRIVATE VK_NO_PROTOTYPES)
 target_compile_features(${NAME} PRIVATE cxx_std_20)
 set_target_properties(${NAME} PROPERTIES DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
+target_compile_definitions(${NAME} PRIVATE
+    ASSET_PATH="${CMAKE_SOURCE_DIR}/assets/"
+)
+
 
 target_include_directories(${NAME} PRIVATE
     ${tinygltf_SOURCE_DIR}

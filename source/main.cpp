@@ -269,7 +269,8 @@ int main(int argc, char* argv[]) {
                         .layerCount = 1}};
   chk(vkCreateImageView(device, &depthViewCI, nullptr, &depthImageView));
 
-  const char* input_filename = "assets/damaged_helmet/damaged_helmet.gltf";
+  std::string input_filename =
+      std::string(ASSET_PATH) + "scenes/damaged-helmet/damaged-helmet.gltf";
   //Mesh loading
   tinygltf::Model model;
   tinygltf::TinyGLTF loader;
