@@ -62,6 +62,9 @@ struct Texture {
 };
 
 std::vector<Texture> textures;
+VkDescriptorPool descriptorPool{VK_NULL_HANDLE};
+VkDescriptorSetLayout descriptorSetLayoutTex{VK_NULL_HANDLE};
+VkDescriptorSet descriptorSetTex{VK_NULL_HANDLE};
 
 struct ShaderData {
   glm::mat4 projection;
@@ -599,5 +602,55 @@ int main(int argc, char* argv[]) {
          .imageView = textures[i].view,
          .imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
   }
+  // Descriptor (indexing)
+  VkDescriptorBindingFlags descVariableFlag{
+      VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT};
+  VkDescriptorSetLayoutBindingFlagsCreateInfo descBindingFlags{
+      .sType =
+          VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+      .bindingCount = 1,
+      .pBindingFlags = &descVariableFlag};
+  VkDescriptorSetLayoutBinding descLayoutBindingTex{
+      .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      .descriptorCount = static_cast<uint32_t>(textures.size()),
+      .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT};
+  VkDescriptorSetLayoutCreateInfo descLayoutTexCI{
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+      .pNext = &descBindingFlags,
+      .bindingCount = 1,
+      .pBindings = &descLayoutBindingTex};
+  chk(vkCreateDescriptorSetLayout(device, &descLayoutTexCI, nullptr,
+                                  &descriptorSetLayoutTex));
+  VkDescriptorPoolSize poolSize{
+      .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      .descriptorCount = static_cast<uint32_t>(textures.size())};
+  VkDescriptorPoolCreateInfo descPoolCI{
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+      .maxSets = 1,
+      .poolSizeCount = 1,
+      .pPoolSizes = &poolSize};
+  chk(vkCreateDescriptorPool(device, &descPoolCI, nullptr, &descriptorPool));
+  uint32_t variableDescCount{static_cast<uint32_t>(textures.size())};
+  VkDescriptorSetVariableDescriptorCountAllocateInfo variableDescCountAI{
+      .sType =
+          VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT,
+      .descriptorSetCount = 1,
+      .pDescriptorCounts = &variableDescCount};
+  VkDescriptorSetAllocateInfo texDescSetAlloc{
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+      .pNext = &variableDescCountAI,
+      .descriptorPool = descriptorPool,
+      .descriptorSetCount = 1,
+      .pSetLayouts = &descriptorSetLayoutTex};
+  chk(vkAllocateDescriptorSets(device, &texDescSetAlloc, &descriptorSetTex));
+  VkWriteDescriptorSet writeDescSet{
+      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+      .dstSet = descriptorSetTex,
+      .dstBinding = 0,
+      .descriptorCount = static_cast<uint32_t>(textureDescriptors.size()),
+      .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      .pImageInfo = textureDescriptors.data()};
+  vkUpdateDescriptorSets(device, 1, &writeDescSet, 0, nullptr);
+  //TODO: figure out with descriptor stuff again
   return 0;
 }
