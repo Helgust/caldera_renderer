@@ -54,6 +54,8 @@ std::array<VkSemaphore, maxFramesInFlight> presentSemaphores;
 VkCommandPool commandPool{VK_NULL_HANDLE};
 std::array<VkCommandBuffer, maxFramesInFlight> commandBuffers;
 
+Slang::ComPtr<slang::IGlobalSession> slangGlobalSession;
+
 struct Texture {
   VmaAllocation allocation{VK_NULL_HANDLE};
   VkImage image{VK_NULL_HANDLE};
@@ -652,5 +654,33 @@ int main(int argc, char* argv[]) {
       .pImageInfo = textureDescriptors.data()};
   vkUpdateDescriptorSets(device, 1, &writeDescSet, 0, nullptr);
   //TODO: figure out with descriptor stuff again
+  // Initialize Slang shader compiler
+  slang::createGlobalSession(slangGlobalSession.writeRef());
+  auto slangTargets{std::to_array<slang::TargetDesc>(
+      {{.format{SLANG_SPIRV},
+        .profile{slangGlobalSession->findProfile("spirv_1_4")}}})};
+  auto slangOptions{std::to_array<slang::CompilerOptionEntry>(
+      {{slang::CompilerOptionName::EmitSpirvDirectly,
+        {slang::CompilerOptionValueKind::Int, 1}}})};
+  slang::SessionDesc slangSessionDesc{
+      .targets{slangTargets.data()},
+      .targetCount{SlangInt(slangTargets.size())},
+      .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
+      .compilerOptionEntries{slangOptions.data()},
+      .compilerOptionEntryCount{uint32_t(slangOptions.size())}};
+  // Load shader
+  Slang::ComPtr<slang::ISession> slangSession;
+  slangGlobalSession->createSession(slangSessionDesc, slangSession.writeRef());
+  std::string shader_path = std::string(SHADER_PATH) + "shader.slang";
+  Slang::ComPtr<slang::IModule> slangModule{slangSession->loadModuleFromSource(
+      "triangle", shader_path.c_str(), nullptr, nullptr)};
+  Slang::ComPtr<ISlangBlob> spirv;
+  slangModule->getTargetCode(0, spirv.writeRef());
+  VkShaderModuleCreateInfo shaderModuleCI{
+      .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+      .codeSize = spirv->getBufferSize(),
+      .pCode = (uint32_t*)spirv->getBufferPointer()};
+  VkShaderModule shaderModule{};
+  chk(vkCreateShaderModule(device, &shaderModuleCI, nullptr, &shaderModule));
   return 0;
 }

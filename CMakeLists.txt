@@ -91,6 +91,8 @@ set_target_properties(${NAME} PROPERTIES DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURR
 
 target_compile_definitions(${NAME} PRIVATE
     ASSET_PATH="${CMAKE_SOURCE_DIR}/assets/"
+    SHADER_PATH="${CMAKE_SOURCE_DIR}/shaders/"
+
 )
 
 
