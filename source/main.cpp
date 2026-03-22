@@ -464,7 +464,7 @@ int main(int argc, char* argv[]) {
                    ->data[texCoordBufferView->byteOffset +
                           texCoordAccessor->byteOffset + index * uvStride]);
 
-          vertex.uv = {uv[0], 1.0f - uv[1]};
+          vertex.uv = {uv[0], uv[1]};
         } else {
           vertex.uv = {0.0f, 0.0f};
         }
