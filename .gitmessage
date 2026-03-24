@@ -1,18 +1,8 @@
-<Type>: <Subsystem>: summary
+<Subsystem>: summary
 
 Details:
 -
 
 Notes:
 -
-# <Type>: <Subsystem>: summary
-#
-# Types:
-# feat     new feature
-# fix      bug fix
-# refactor code change without feature
-# perf     performance improvement
-# docs     documentation
-# build    build system / cmake
-# style    formatting / clang-format
-# test     tests
+# <Subsystem>: summary
