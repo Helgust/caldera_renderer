@@ -77,6 +77,12 @@ set(IMGUI_SRC
 )
 
 # ----------------------------------
+# Scene module
+# ----------------------------------
+
+add_subdirectory(source/scene)
+
+# ----------------------------------
 # Executable
 # ----------------------------------
 
@@ -106,4 +112,5 @@ target_link_libraries(${NAME} PRIVATE
     ktx
     ${SDL_LIBRARY}
     ${Slang_LIBRARY}
+    scene
 )

@@ -22,40 +22,7 @@
 #include "slang/slang-com-ptr.h"
 #include "slang/slang.h"
 
-#define TINYGLTF_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "tiny_gltf.h"
-
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
-
-struct Vertex {
-  glm::vec3 pos;
-  glm::vec3 normal;
-  glm::vec2 uv;
-  glm::vec3 color;
-
-  bool operator==(const Vertex& other) const {
-    return glm::all(glm::epsilonEqual(pos, other.pos, 0.0001f)) &&
-           glm::all(glm::epsilonEqual(normal, other.normal, 0.0001f)) &&
-           glm::all(glm::epsilonEqual(uv, other.uv, 0.0001f)) &&
-           glm::all(glm::epsilonEqual(color, other.color, 0.0001f));
-  }
-};
-
-namespace std {
-template <>
-struct hash<Vertex> {
-  size_t operator()(Vertex const& vertex) const {
-    return ((hash<glm::vec3>()(vertex.pos) ^
-             (hash<glm::vec3>()(vertex.normal) << 1)) >>
-            1) ^
-           (hash<glm::vec3>()(vertex.color) << 1) ^
-           (hash<glm::vec2>()(vertex.uv) << 1);
-  }
-};
-}  // namespace std
+#include "scene/scene_loader.h"
 
 constexpr uint32_t maxFramesInFlight{2};
 VkInstance instance{VK_NULL_HANDLE};
@@ -335,152 +302,13 @@ int main(int argc, char* argv[]) {
 
   std::string input_filename =
       std::string(ASSET_PATH) + "scenes/damaged-helmet/damaged-helmet.gltf";
-  //Mesh loading
-  std::vector<Vertex> vertices{};
-  std::vector<uint16_t> indices{};
-  // Use tinygltf to load the model instead of tinyobjloader
-  tinygltf::Model model;
-  tinygltf::TinyGLTF loader;
-  std::string err;
-  std::string warn;
 
-  bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, input_filename);
+  // Scene loading
+  SceneLoader sceneLoader;
+  Scene scene = sceneLoader.load(input_filename);
 
-  if (!warn.empty()) {
-    std::cout << "glTF warning: " << warn << std::endl;
-  }
-
-  if (!err.empty()) {
-    std::cout << "glTF error: " << err << std::endl;
-  }
-
-  if (!ret) {
-    throw std::runtime_error("Failed to load glTF model");
-  }
-
-  // Process all meshes in the model
-  std::unordered_map<Vertex, uint32_t> uniqueVertices{};
-
-  for (const auto& mesh : model.meshes) {
-    for (const auto& primitive : mesh.primitives) {
-      // Get indices
-      const tinygltf::Accessor& indexAccessor =
-          model.accessors[primitive.indices];
-      const tinygltf::BufferView& indexBufferView =
-          model.bufferViews[indexAccessor.bufferView];
-      const tinygltf::Buffer& indexBuffer =
-          model.buffers[indexBufferView.buffer];
-
-      // Get vertex positions
-      const tinygltf::Accessor& posAccessor =
-          model.accessors[primitive.attributes.at("POSITION")];
-      const tinygltf::BufferView& posBufferView =
-          model.bufferViews[posAccessor.bufferView];
-      const tinygltf::Buffer& posBuffer = model.buffers[posBufferView.buffer];
-
-      // Get texture coordinates if available
-      bool hasTexCoords =
-          primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end();
-      const tinygltf::Accessor* texCoordAccessor = nullptr;
-      const tinygltf::BufferView* texCoordBufferView = nullptr;
-      const tinygltf::Buffer* texCoordBuffer = nullptr;
-
-      if (hasTexCoords) {
-        texCoordAccessor =
-            &model.accessors[primitive.attributes.at("TEXCOORD_0")];
-        texCoordBufferView = &model.bufferViews[texCoordAccessor->bufferView];
-        texCoordBuffer = &model.buffers[texCoordBufferView->buffer];
-      }
-
-      bool hasNormals =
-          primitive.attributes.find("NORMAL") != primitive.attributes.end();
-
-      const tinygltf::Accessor* normalAccessor = nullptr;
-      const tinygltf::BufferView* normalBufferView = nullptr;
-      const tinygltf::Buffer* normalBuffer = nullptr;
-
-      if (hasNormals) {
-        normalAccessor = &model.accessors[primitive.attributes.at("NORMAL")];
-        normalBufferView = &model.bufferViews[normalAccessor->bufferView];
-        normalBuffer = &model.buffers[normalBufferView->buffer];
-      }
-
-      const unsigned char* indexData =
-          &indexBuffer
-               .data[indexBufferView.byteOffset + indexAccessor.byteOffset];
-
-      for (size_t i = 0; i < indexAccessor.count; i++) {
-
-        uint32_t index = 0;
-
-        if (indexAccessor.componentType ==
-            TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-          index = reinterpret_cast<const uint16_t*>(indexData)[i];
-        } else if (indexAccessor.componentType ==
-                   TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
-          index = reinterpret_cast<const uint32_t*>(indexData)[i];
-        } else if (indexAccessor.componentType ==
-                   TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
-          index = reinterpret_cast<const uint8_t*>(indexData)[i];
-        }
-
-        Vertex vertex{};
-
-        // ===== POSITION =====
-        size_t posStride = posAccessor.ByteStride(posBufferView);
-        if (posStride == 0)
-          posStride = sizeof(float) * 3;
-
-        const float* pos = reinterpret_cast<const float*>(
-            &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset +
-                            index * posStride]);
-
-        vertex.pos = {pos[0], pos[1], pos[2]};
-
-        // ===== NORMAL =====
-        if (hasNormals) {
-          size_t normalStride = normalAccessor->ByteStride(*normalBufferView);
-          if (normalStride == 0)
-            normalStride = sizeof(float) * 3;
-
-          const float* normal = reinterpret_cast<const float*>(
-              &normalBuffer
-                   ->data[normalBufferView->byteOffset +
-                          normalAccessor->byteOffset + index * normalStride]);
-
-          vertex.normal = {normal[0], normal[1], normal[2]};
-        } else {
-          vertex.normal = {0.0f, 0.0f, 1.0f};
-        }
-
-        // ===== UV =====
-        if (hasTexCoords) {
-          size_t uvStride = texCoordAccessor->ByteStride(*texCoordBufferView);
-          if (uvStride == 0)
-            uvStride = sizeof(float) * 2;
-
-          const float* uv = reinterpret_cast<const float*>(
-              &texCoordBuffer
-                   ->data[texCoordBufferView->byteOffset +
-                          texCoordAccessor->byteOffset + index * uvStride]);
-
-          vertex.uv = {uv[0], uv[1]};
-        } else {
-          vertex.uv = {0.0f, 0.0f};
-        }
-
-        vertex.color = {1.0f, 1.0f, 1.0f};
-
-        // ===== DEDUP =====
-        if (!uniqueVertices.contains(vertex)) {
-          uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-          vertices.push_back(vertex);
-        }
-
-        indices.push_back(uniqueVertices[vertex]);
-      }
-    }
-  }
+  const auto& vertices = scene.mesh.vertices;
+  const auto& indices = scene.mesh.indices;
   const VkDeviceSize indexCount{indices.size()};
   VkDeviceSize vBufSize{sizeof(Vertex) * vertices.size()};
   VkDeviceSize iBufSize{sizeof(uint16_t) * indices.size()};
@@ -547,10 +375,10 @@ int main(int argc, char* argv[]) {
       .commandBufferCount = maxFramesInFlight};
   chk(vkAllocateCommandBuffers(device, &cbAllocCI, commandBuffers.data()));
   std::vector<VkDescriptorImageInfo> textureDescriptors{};
-  textures.resize(model.images.size());
-  for (size_t i = 0; i < model.images.size(); i++) {
+  textures.resize(scene.images.size());
+  for (size_t i = 0; i < scene.images.size(); i++) {
     const int mipLevelsCount = 1;
-    const tinygltf::Image& img = model.images[i];
+    const ImageData& img = scene.images[i];
     std::cout << "Image: " << img.width << "x" << img.height << "\n";
     VkImageCreateInfo texImgCI{
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -586,7 +414,7 @@ int main(int argc, char* argv[]) {
     VmaAllocation imgSrcAllocation{};
     VkBufferCreateInfo imgSrcBufferCI{
         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .size = (uint32_t)img.image.size(),
+        .size = static_cast<uint32_t>(img.pixels.size()),
         .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT};
     VmaAllocationCreateInfo imgSrcAllocCI{
         .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
@@ -595,7 +423,7 @@ int main(int argc, char* argv[]) {
     VmaAllocationInfo imgSrcAllocInfo{};
     chk(vmaCreateBuffer(allocator, &imgSrcBufferCI, &imgSrcAllocCI,
                         &imgSrcBuffer, &imgSrcAllocation, &imgSrcAllocInfo));
-    memcpy(imgSrcAllocInfo.pMappedData, img.image.data(), img.image.size());
+    memcpy(imgSrcAllocInfo.pMappedData, img.pixels.data(), img.pixels.size());
     VkFenceCreateInfo fenceOneTimeCI{.sType =
                                          VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
     VkFence fenceOneTime{};
