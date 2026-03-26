@@ -22,7 +22,7 @@
 #include "slang/slang-com-ptr.h"
 #include "slang/slang.h"
 
-#include "scene/scene_loader.h"
+#include "scene/sceneLoader.h"
 
 constexpr uint32_t maxFramesInFlight{2};
 VkInstance instance{VK_NULL_HANDLE};

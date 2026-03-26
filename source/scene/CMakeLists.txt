@@ -1,6 +1,6 @@
 add_library(scene STATIC
-    scene_loader.cpp
-    scene_loader.h
+    sceneLoader.cpp
+    sceneLoader.h
 )
 
 target_include_directories(scene PUBLIC
