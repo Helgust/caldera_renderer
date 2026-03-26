@@ -8,6 +8,9 @@ project(${NAME})
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Glob all .cpp files under source/ recursively
+file(GLOB_RECURSE SOURCES "source/*.cpp")
+
 include(FetchContent)
 
 # ----------------------------------
@@ -87,7 +90,7 @@ add_subdirectory(source/scene)
 # ----------------------------------
 
 add_executable(${NAME}
-    source/main.cpp
+    ${SOURCES}
     ${IMGUI_SRC}
 )
 
@@ -103,6 +106,7 @@ target_compile_definitions(${NAME} PRIVATE
 
 
 target_include_directories(${NAME} PRIVATE
+    source/
     ${tinygltf_SOURCE_DIR}
     ${imgui_SOURCE_DIR}
 )
