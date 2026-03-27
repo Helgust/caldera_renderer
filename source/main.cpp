@@ -22,13 +22,10 @@
 #include "slang/slang-com-ptr.h"
 #include "slang/slang.h"
 
+#include "core/vulkanContext.h"
 #include "scene/sceneLoader.h"
 
 constexpr uint32_t maxFramesInFlight{2};
-VkInstance instance{VK_NULL_HANDLE};
-VkDevice device{VK_NULL_HANDLE};
-VkQueue queue{VK_NULL_HANDLE};
-VmaAllocator allocator{VK_NULL_HANDLE};
 VkSurfaceKHR surface{VK_NULL_HANDLE};
 VkSwapchainKHR swapchain{VK_NULL_HANDLE};
 std::vector<VkImage> swapchainImages;
@@ -113,112 +110,20 @@ static inline void chkSwapchain(VkResult result) {
 int main(int argc, char* argv[]) {
   chk(SDL_Init(SDL_INIT_VIDEO));
   chk(SDL_Vulkan_LoadLibrary(NULL));
-  volkInitialize();
-  // Instance
-  VkApplicationInfo appInfo{.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-                            .pApplicationName = "CalderaRenderer",
-                            .apiVersion = VK_API_VERSION_1_3};
-  uint32_t instanceExtensionsCount{0};
-  char const* const* instanceExtensions{
-      SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount)};
-  VkInstanceCreateInfo instanceCI{
-      .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-      .pApplicationInfo = &appInfo,
-      .enabledExtensionCount = instanceExtensionsCount,
-      .ppEnabledExtensionNames = instanceExtensions,
-  };
-  chk(vkCreateInstance(&instanceCI, nullptr, &instance));
-  volkLoadInstance(instance);
 
-  // Device
-  uint32_t deviceCount{0};
-  chk(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr));
-  std::vector<VkPhysicalDevice> devices(deviceCount);
-  chk(vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data()));
-  uint32_t deviceIndex{0};
-  if (argc > 1) {
-    deviceIndex = std::stoi(argv[1]);
-    assert(deviceIndex < deviceCount);
-  }
-  VkPhysicalDeviceProperties2 deviceProperties{
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
-  vkGetPhysicalDeviceProperties2(devices[deviceIndex], &deviceProperties);
-  std::cout << "Selected device: " << deviceProperties.properties.deviceName
-            << "\n";
-
-  uint32_t queueFamilyCount{0};
-  vkGetPhysicalDeviceQueueFamilyProperties(devices[deviceIndex],
-                                           &queueFamilyCount, nullptr);
-  std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-  vkGetPhysicalDeviceQueueFamilyProperties(
-      devices[deviceIndex], &queueFamilyCount, queueFamilies.data());
-  // Find a queue family for graphics
-  uint32_t queueFamily{0};
-  for (size_t i = 0; i < queueFamilies.size(); i++) {
-    if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-      queueFamily = i;
-      break;
-    }
-  }
-  chk(SDL_Vulkan_GetPresentationSupport(instance, devices[deviceIndex],
-                                        queueFamily));
-  // Logical device
-  const float qfpriorities{1.0f};
-  VkDeviceQueueCreateInfo queueCI{
-      .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-      .queueFamilyIndex = queueFamily,
-      .queueCount = 1,
-      .pQueuePriorities = &qfpriorities};
-  VkPhysicalDeviceVulkan12Features enabledVk12Features{
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-      .descriptorIndexing = true,
-      .shaderSampledImageArrayNonUniformIndexing = true,
-      .descriptorBindingVariableDescriptorCount = true,
-      .runtimeDescriptorArray = true,
-      .bufferDeviceAddress = true};
-  const VkPhysicalDeviceVulkan13Features enabledVk13Features{
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-      .pNext = &enabledVk12Features,
-      .synchronization2 = true,
-      .dynamicRendering = true,
-  };
-  const std::vector<const char*> deviceExtensions{
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-  const VkPhysicalDeviceFeatures enabledVk10Features{.samplerAnisotropy =
-                                                         VK_TRUE};
-
-  VkDeviceCreateInfo deviceCI{
-      .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      .pNext = &enabledVk13Features,
-      .queueCreateInfoCount = 1,
-      .pQueueCreateInfos = &queueCI,
-      .enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()),
-      .ppEnabledExtensionNames = deviceExtensions.data(),
-      .pEnabledFeatures = &enabledVk10Features};
-  chk(vkCreateDevice(devices[deviceIndex], &deviceCI, nullptr, &device));
-  vkGetDeviceQueue(device, queueFamily, 0, &queue);
-
-  // VMA
-  VmaVulkanFunctions vkFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
-                                 .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
-                                 .vkCreateImage = vkCreateImage};
-  VmaAllocatorCreateInfo allocatorCI{
-      .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
-      .physicalDevice = devices[deviceIndex],
-      .device = device,
-      .pVulkanFunctions = &vkFunctions,
-      .instance = instance};
-  chk(vmaCreateAllocator(&allocatorCI, &allocator));
+  uint32_t deviceIndex = (argc > 1) ? std::stoi(argv[1]) : 0;
+  caldera::VulkanContext ctx;
+  ctx.init(deviceIndex);
 
   //Window
   SDL_Window* window =
       SDL_CreateWindow("Caldera Renderer", 1280u, 720u,
                        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
   assert(window);
-  chk(SDL_Vulkan_CreateSurface(window, instance, nullptr, &surface));
+  chk(SDL_Vulkan_CreateSurface(window, ctx.instance, nullptr, &surface));
   chk(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
   VkSurfaceCapabilitiesKHR surfaceCaps{};
-  chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[deviceIndex], surface,
+  chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx.physicalDevice, surface,
                                                 &surfaceCaps));
 
   //Swapchain
@@ -236,11 +141,11 @@ int main(int argc, char* argv[]) {
       .preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
       .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
       .presentMode = VK_PRESENT_MODE_FIFO_KHR};
-  chk(vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapchain));
+  chk(vkCreateSwapchainKHR(ctx.device, &swapchainCI, nullptr, &swapchain));
   uint32_t imageCount{0};
-  chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr));
+  chk(vkGetSwapchainImagesKHR(ctx.device, swapchain, &imageCount, nullptr));
   swapchainImages.resize(imageCount);
-  chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount,
+  chk(vkGetSwapchainImagesKHR(ctx.device, swapchain, &imageCount,
                               swapchainImages.data()));
   swapchainImageViews.resize(imageCount);
 
@@ -253,7 +158,8 @@ int main(int argc, char* argv[]) {
         .subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                           .levelCount = 1,
                           .layerCount = 1}};
-    chk(vkCreateImageView(device, &viewCI, nullptr, &swapchainImageViews[i]));
+    chk(vkCreateImageView(ctx.device, &viewCI, nullptr,
+                          &swapchainImageViews[i]));
   }
   // Depth attachment
   std::vector<VkFormat> depthFormatList{VK_FORMAT_D32_SFLOAT_S8_UINT,
@@ -262,7 +168,7 @@ int main(int argc, char* argv[]) {
   for (VkFormat& format : depthFormatList) {
     VkFormatProperties2 formatProperties{
         .sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2};
-    vkGetPhysicalDeviceFormatProperties2(devices[deviceIndex], format,
+    vkGetPhysicalDeviceFormatProperties2(ctx.physicalDevice, format,
                                          &formatProperties);
     if (formatProperties.formatProperties.optimalTilingFeatures &
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
@@ -288,7 +194,7 @@ int main(int argc, char* argv[]) {
   VmaAllocationCreateInfo allocCI{
       .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
       .usage = VMA_MEMORY_USAGE_AUTO};
-  chk(vmaCreateImage(allocator, &depthImageCI, &allocCI, &depthImage,
+  chk(vmaCreateImage(ctx.allocator, &depthImageCI, &allocCI, &depthImage,
                      &depthImageAllocation, nullptr));
   VkImageViewCreateInfo depthViewCI{
       .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -298,7 +204,7 @@ int main(int argc, char* argv[]) {
       .subresourceRange{.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
                         .levelCount = 1,
                         .layerCount = 1}};
-  chk(vkCreateImageView(device, &depthViewCI, nullptr, &depthImageView));
+  chk(vkCreateImageView(ctx.device, &depthViewCI, nullptr, &depthImageView));
 
   std::string input_filename =
       std::string(ASSET_PATH) + "scenes/damaged-helmet/damaged-helmet.gltf";
@@ -323,7 +229,7 @@ int main(int argc, char* argv[]) {
                VMA_ALLOCATION_CREATE_MAPPED_BIT,
       .usage = VMA_MEMORY_USAGE_AUTO};
   VmaAllocationInfo vBufferAllocInfo{};
-  chk(vmaCreateBuffer(allocator, &bufferCI, &vBufferAllocCI, &vBuffer,
+  chk(vmaCreateBuffer(ctx.allocator, &bufferCI, &vBufferAllocCI, &vBuffer,
                       &vBufferAllocation, &vBufferAllocInfo));
   memcpy(vBufferAllocInfo.pMappedData, vertices.data(), vBufSize);
   memcpy(((char*)vBufferAllocInfo.pMappedData) + vBufSize, indices.data(),
@@ -339,7 +245,7 @@ int main(int argc, char* argv[]) {
                  VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT |
                  VMA_ALLOCATION_CREATE_MAPPED_BIT,
         .usage = VMA_MEMORY_USAGE_AUTO};
-    chk(vmaCreateBuffer(allocator, &uBufferCI, &uBufferAllocCI,
+    chk(vmaCreateBuffer(ctx.allocator, &uBufferCI, &uBufferAllocCI,
                         &shaderDataBuffers[i].buffer,
                         &shaderDataBuffers[i].allocation,
                         &shaderDataBuffers[i].allocationInfo));
@@ -347,7 +253,7 @@ int main(int argc, char* argv[]) {
         .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
         .buffer = shaderDataBuffers[i].buffer};
     shaderDataBuffers[i].deviceAddress =
-        vkGetBufferDeviceAddress(device, &uBufferBdaInfo);
+        vkGetBufferDeviceAddress(ctx.device, &uBufferBdaInfo);
   }
   // Sync objects
   VkSemaphoreCreateInfo semaphoreCI{
@@ -355,25 +261,25 @@ int main(int argc, char* argv[]) {
   VkFenceCreateInfo fenceCI{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
                             .flags = VK_FENCE_CREATE_SIGNALED_BIT};
   for (auto i = 0; i < maxFramesInFlight; i++) {
-    chk(vkCreateFence(device, &fenceCI, nullptr, &fences[i]));
-    chk(vkCreateSemaphore(device, &semaphoreCI, nullptr,
+    chk(vkCreateFence(ctx.device, &fenceCI, nullptr, &fences[i]));
+    chk(vkCreateSemaphore(ctx.device, &semaphoreCI, nullptr,
                           &presentSemaphores[i]));
   }
   renderSemaphores.resize(swapchainImages.size());
   for (auto& semaphore : renderSemaphores) {
-    chk(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
+    chk(vkCreateSemaphore(ctx.device, &semaphoreCI, nullptr, &semaphore));
   }
   // Command pool
   VkCommandPoolCreateInfo commandPoolCI{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-      .queueFamilyIndex = queueFamily};
-  chk(vkCreateCommandPool(device, &commandPoolCI, nullptr, &commandPool));
+      .queueFamilyIndex = ctx.graphicsFamily};
+  chk(vkCreateCommandPool(ctx.device, &commandPoolCI, nullptr, &commandPool));
   VkCommandBufferAllocateInfo cbAllocCI{
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
       .commandPool = commandPool,
       .commandBufferCount = maxFramesInFlight};
-  chk(vkAllocateCommandBuffers(device, &cbAllocCI, commandBuffers.data()));
+  chk(vkAllocateCommandBuffers(ctx.device, &cbAllocCI, commandBuffers.data()));
   std::vector<VkDescriptorImageInfo> textureDescriptors{};
   textures.resize(scene.images.size());
   for (size_t i = 0; i < scene.images.size(); i++) {
@@ -396,7 +302,7 @@ int main(int argc, char* argv[]) {
         .usage = VMA_MEMORY_USAGE_AUTO,
     };
 
-    chk(vmaCreateImage(allocator, &texImgCI, &texImageAllocCI,
+    chk(vmaCreateImage(ctx.allocator, &texImgCI, &texImageAllocCI,
                        &textures[i].image, &textures[i].allocation, nullptr));
 
     VkImageViewCreateInfo texVewCI{
@@ -407,7 +313,7 @@ int main(int argc, char* argv[]) {
         .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                              .levelCount = mipLevelsCount,
                              .layerCount = 1}};
-    chk(vkCreateImageView(device, &texVewCI, nullptr, &textures[i].view));
+    chk(vkCreateImageView(ctx.device, &texVewCI, nullptr, &textures[i].view));
 
     // Upload
     VkBuffer imgSrcBuffer{};
@@ -421,19 +327,19 @@ int main(int argc, char* argv[]) {
                  VMA_ALLOCATION_CREATE_MAPPED_BIT,
         .usage = VMA_MEMORY_USAGE_AUTO};
     VmaAllocationInfo imgSrcAllocInfo{};
-    chk(vmaCreateBuffer(allocator, &imgSrcBufferCI, &imgSrcAllocCI,
+    chk(vmaCreateBuffer(ctx.allocator, &imgSrcBufferCI, &imgSrcAllocCI,
                         &imgSrcBuffer, &imgSrcAllocation, &imgSrcAllocInfo));
     memcpy(imgSrcAllocInfo.pMappedData, img.pixels.data(), img.pixels.size());
     VkFenceCreateInfo fenceOneTimeCI{.sType =
                                          VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
     VkFence fenceOneTime{};
-    chk(vkCreateFence(device, &fenceOneTimeCI, nullptr, &fenceOneTime));
+    chk(vkCreateFence(ctx.device, &fenceOneTimeCI, nullptr, &fenceOneTime));
     VkCommandBuffer cbOneTime{};
     VkCommandBufferAllocateInfo cbOneTimeAI{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .commandPool = commandPool,
         .commandBufferCount = 1};
-    chk(vkAllocateCommandBuffers(device, &cbOneTimeAI, &cbOneTime));
+    chk(vkAllocateCommandBuffers(ctx.device, &cbOneTimeAI, &cbOneTime));
 
     VkCommandBufferBeginInfo cbOneTimeBI{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -492,10 +398,10 @@ int main(int argc, char* argv[]) {
     VkSubmitInfo oneTimeSI{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
                            .commandBufferCount = 1,
                            .pCommandBuffers = &cbOneTime};
-    chk(vkQueueSubmit(queue, 1, &oneTimeSI, fenceOneTime));
-    chk(vkWaitForFences(device, 1, &fenceOneTime, VK_TRUE, UINT64_MAX));
-    vkDestroyFence(device, fenceOneTime, nullptr);
-    vmaDestroyBuffer(allocator, imgSrcBuffer, imgSrcAllocation);
+    chk(vkQueueSubmit(ctx.graphicsQueue, 1, &oneTimeSI, fenceOneTime));
+    chk(vkWaitForFences(ctx.device, 1, &fenceOneTime, VK_TRUE, UINT64_MAX));
+    vkDestroyFence(ctx.device, fenceOneTime, nullptr);
+    vmaDestroyBuffer(ctx.allocator, imgSrcBuffer, imgSrcAllocation);
 
     // Sampler
     VkSamplerCreateInfo samplerCI{
@@ -507,7 +413,7 @@ int main(int argc, char* argv[]) {
         .maxAnisotropy = 8.0f,
         .maxLod = (float)mipLevelsCount,
     };
-    chk(vkCreateSampler(device, &samplerCI, nullptr, &textures[i].sampler));
+    chk(vkCreateSampler(ctx.device, &samplerCI, nullptr, &textures[i].sampler));
     //ktxTexture_Destroy(ktxTexture);
     textureDescriptors.push_back(
         {.sampler = textures[i].sampler,
@@ -531,7 +437,7 @@ int main(int argc, char* argv[]) {
       .pNext = &descBindingFlags,
       .bindingCount = 1,
       .pBindings = &descLayoutBindingTex};
-  chk(vkCreateDescriptorSetLayout(device, &descLayoutTexCI, nullptr,
+  chk(vkCreateDescriptorSetLayout(ctx.device, &descLayoutTexCI, nullptr,
                                   &descriptorSetLayoutTex));
   VkDescriptorPoolSize poolSize{
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -541,7 +447,8 @@ int main(int argc, char* argv[]) {
       .maxSets = 1,
       .poolSizeCount = 1,
       .pPoolSizes = &poolSize};
-  chk(vkCreateDescriptorPool(device, &descPoolCI, nullptr, &descriptorPool));
+  chk(vkCreateDescriptorPool(ctx.device, &descPoolCI, nullptr,
+                             &descriptorPool));
   uint32_t variableDescCount{static_cast<uint32_t>(textures.size())};
   VkDescriptorSetVariableDescriptorCountAllocateInfo variableDescCountAI{
       .sType =
@@ -554,7 +461,8 @@ int main(int argc, char* argv[]) {
       .descriptorPool = descriptorPool,
       .descriptorSetCount = 1,
       .pSetLayouts = &descriptorSetLayoutTex};
-  chk(vkAllocateDescriptorSets(device, &texDescSetAlloc, &descriptorSetTex));
+  chk(vkAllocateDescriptorSets(ctx.device, &texDescSetAlloc,
+                               &descriptorSetTex));
   VkWriteDescriptorSet writeDescSet{
       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
       .dstSet = descriptorSetTex,
@@ -562,7 +470,7 @@ int main(int argc, char* argv[]) {
       .descriptorCount = static_cast<uint32_t>(textureDescriptors.size()),
       .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       .pImageInfo = textureDescriptors.data()};
-  vkUpdateDescriptorSets(device, 1, &writeDescSet, 0, nullptr);
+  vkUpdateDescriptorSets(ctx.device, 1, &writeDescSet, 0, nullptr);
   //TODO: figure out with descriptor stuff again
   // Initialize Slang shader compiler
   slang::createGlobalSession(slangGlobalSession.writeRef());
@@ -591,7 +499,8 @@ int main(int argc, char* argv[]) {
       .codeSize = spirv->getBufferSize(),
       .pCode = (uint32_t*)spirv->getBufferPointer()};
   VkShaderModule shaderModule{};
-  chk(vkCreateShaderModule(device, &shaderModuleCI, nullptr, &shaderModule));
+  chk(vkCreateShaderModule(ctx.device, &shaderModuleCI, nullptr,
+                           &shaderModule));
 
   // Pipeline
   VkPushConstantRange pushConstantRange{
@@ -603,7 +512,7 @@ int main(int argc, char* argv[]) {
       .pSetLayouts = &descriptorSetLayoutTex,
       .pushConstantRangeCount = 1,
       .pPushConstantRanges = &pushConstantRange};
-  chk(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr,
+  chk(vkCreatePipelineLayout(ctx.device, &pipelineLayoutCI, nullptr,
                              &pipelineLayout));
   std::vector<VkPipelineShaderStageCreateInfo> shaderStages{
       {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -688,16 +597,16 @@ int main(int argc, char* argv[]) {
       .pColorBlendState = &colorBlendState,
       .pDynamicState = &dynamicState,
       .layout = pipelineLayout};
-  chk(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
-                                &pipeline));
+  chk(vkCreateGraphicsPipelines(ctx.device, VK_NULL_HANDLE, 1, &pipelineCI,
+                                nullptr, &pipeline));
   uint64_t lastTime{SDL_GetTicks()};
   bool quit{false};
   while (!quit) {
     // Wait on fence
-    chk(vkWaitForFences(device, 1, &fences[frameIndex], true, UINT64_MAX));
-    chk(vkResetFences(device, 1, &fences[frameIndex]));
+    chk(vkWaitForFences(ctx.device, 1, &fences[frameIndex], true, UINT64_MAX));
+    chk(vkResetFences(ctx.device, 1, &fences[frameIndex]));
     // Acquire next image
-    chkSwapchain(vkAcquireNextImageKHR(device, swapchain, UINT64_MAX,
+    chkSwapchain(vkAcquireNextImageKHR(ctx.device, swapchain, UINT64_MAX,
                                        presentSemaphores[frameIndex],
                                        VK_NULL_HANDLE, &imageIndex));
     // Update shader data
@@ -825,7 +734,7 @@ int main(int argc, char* argv[]) {
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &renderSemaphores[imageIndex],
     };
-    chk(vkQueueSubmit(queue, 1, &submitInfo, fences[frameIndex]));
+    chk(vkQueueSubmit(ctx.graphicsQueue, 1, &submitInfo, fences[frameIndex]));
     frameIndex = (frameIndex + 1) % maxFramesInFlight;
 
     // Present image
@@ -836,7 +745,7 @@ int main(int argc, char* argv[]) {
         .swapchainCount = 1,
         .pSwapchains = &swapchain,
         .pImageIndices = &imageIndex};
-    chkSwapchain(vkQueuePresentKHR(queue, &presentInfo));
+    chkSwapchain(vkQueuePresentKHR(ctx.graphicsQueue, &presentInfo));
     // Poll events
     float elapsedTime{(SDL_GetTicks() - lastTime) / 1000.0f};
     lastTime = SDL_GetTicks();
@@ -875,19 +784,19 @@ int main(int argc, char* argv[]) {
     if (updateSwapchain) {
       chk(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
       updateSwapchain = false;
-      chk(vkDeviceWaitIdle(device));
-      chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[deviceIndex],
-                                                    surface, &surfaceCaps));
+      chk(vkDeviceWaitIdle(ctx.device));
+      chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx.physicalDevice, surface,
+                                                    &surfaceCaps));
       swapchainCI.oldSwapchain = swapchain;
       swapchainCI.imageExtent = {.width = static_cast<uint32_t>(windowSize.x),
                                  .height = static_cast<uint32_t>(windowSize.y)};
-      chk(vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapchain));
+      chk(vkCreateSwapchainKHR(ctx.device, &swapchainCI, nullptr, &swapchain));
       for (auto i = 0; i < imageCount; i++) {
-        vkDestroyImageView(device, swapchainImageViews[i], nullptr);
+        vkDestroyImageView(ctx.device, swapchainImageViews[i], nullptr);
       }
-      chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr));
+      chk(vkGetSwapchainImagesKHR(ctx.device, swapchain, &imageCount, nullptr));
       swapchainImages.resize(imageCount);
-      chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount,
+      chk(vkGetSwapchainImagesKHR(ctx.device, swapchain, &imageCount,
                                   swapchainImages.data()));
       swapchainImageViews.resize(imageCount);
       for (auto i = 0; i < imageCount; i++) {
@@ -899,19 +808,19 @@ int main(int argc, char* argv[]) {
             .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                                  .levelCount = 1,
                                  .layerCount = 1}};
-        chk(vkCreateImageView(device, &viewCI, nullptr,
+        chk(vkCreateImageView(ctx.device, &viewCI, nullptr,
                               &swapchainImageViews[i]));
       }
-      vkDestroySwapchainKHR(device, swapchainCI.oldSwapchain, nullptr);
-      vmaDestroyImage(allocator, depthImage, depthImageAllocation);
-      vkDestroyImageView(device, depthImageView, nullptr);
+      vkDestroySwapchainKHR(ctx.device, swapchainCI.oldSwapchain, nullptr);
+      vmaDestroyImage(ctx.allocator, depthImage, depthImageAllocation);
+      vkDestroyImageView(ctx.device, depthImageView, nullptr);
       depthImageCI.extent = {.width = static_cast<uint32_t>(windowSize.x),
                              .height = static_cast<uint32_t>(windowSize.y),
                              .depth = 1};
       VmaAllocationCreateInfo allocCI{
           .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
           .usage = VMA_MEMORY_USAGE_AUTO};
-      chk(vmaCreateImage(allocator, &depthImageCI, &allocCI, &depthImage,
+      chk(vmaCreateImage(ctx.allocator, &depthImageCI, &allocCI, &depthImage,
                          &depthImageAllocation, nullptr));
       VkImageViewCreateInfo viewCI{
           .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -921,44 +830,44 @@ int main(int argc, char* argv[]) {
           .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
                                .levelCount = 1,
                                .layerCount = 1}};
-      chk(vkCreateImageView(device, &viewCI, nullptr, &depthImageView));
+      chk(vkCreateImageView(ctx.device, &viewCI, nullptr, &depthImageView));
     }
   }
   // Tear down
-  chk(vkDeviceWaitIdle(device));
+  chk(vkDeviceWaitIdle(ctx.device));
   for (auto i = 0; i < maxFramesInFlight; i++) {
-    vkDestroyFence(device, fences[i], nullptr);
-    vkDestroySemaphore(device, presentSemaphores[i], nullptr);
-    vmaDestroyBuffer(allocator, shaderDataBuffers[i].buffer,
+    vkDestroyFence(ctx.device, fences[i], nullptr);
+    vkDestroySemaphore(ctx.device, presentSemaphores[i], nullptr);
+    vmaDestroyBuffer(ctx.allocator, shaderDataBuffers[i].buffer,
                      shaderDataBuffers[i].allocation);
   }
   for (auto i = 0; i < renderSemaphores.size(); i++) {
-    vkDestroySemaphore(device, renderSemaphores[i], nullptr);
+    vkDestroySemaphore(ctx.device, renderSemaphores[i], nullptr);
   }
-  vmaDestroyImage(allocator, depthImage, depthImageAllocation);
-  vkDestroyImageView(device, depthImageView, nullptr);
+  vmaDestroyImage(ctx.allocator, depthImage, depthImageAllocation);
+  vkDestroyImageView(ctx.device, depthImageView, nullptr);
   for (auto i = 0; i < swapchainImageViews.size(); i++) {
-    vkDestroyImageView(device, swapchainImageViews[i], nullptr);
+    vkDestroyImageView(ctx.device, swapchainImageViews[i], nullptr);
   }
-  vmaDestroyBuffer(allocator, vBuffer, vBufferAllocation);
+  vmaDestroyBuffer(ctx.allocator, vBuffer, vBufferAllocation);
   for (auto i = 0; i < textures.size(); i++) {
-    vkDestroyImageView(device, textures[i].view, nullptr);
-    vkDestroySampler(device, textures[i].sampler, nullptr);
-    vmaDestroyImage(allocator, textures[i].image, textures[i].allocation);
+    vkDestroyImageView(ctx.device, textures[i].view, nullptr);
+    vkDestroySampler(ctx.device, textures[i].sampler, nullptr);
+    vmaDestroyImage(ctx.allocator, textures[i].image, textures[i].allocation);
   }
-  vkDestroyDescriptorSetLayout(device, descriptorSetLayoutTex, nullptr);
-  vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-  vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-  vkDestroyPipeline(device, pipeline, nullptr);
-  vkDestroySwapchainKHR(device, swapchain, nullptr);
-  vkDestroySurfaceKHR(instance, surface, nullptr);
-  vkDestroyCommandPool(device, commandPool, nullptr);
-  vkDestroyShaderModule(device, shaderModule, nullptr);
-  vmaDestroyAllocator(allocator);
+  vkDestroyDescriptorSetLayout(ctx.device, descriptorSetLayoutTex, nullptr);
+  vkDestroyDescriptorPool(ctx.device, descriptorPool, nullptr);
+  vkDestroyPipelineLayout(ctx.device, pipelineLayout, nullptr);
+  vkDestroyPipeline(ctx.device, pipeline, nullptr);
+  vkDestroySwapchainKHR(ctx.device, swapchain, nullptr);
+  vkDestroySurfaceKHR(ctx.instance, surface, nullptr);
+  vkDestroyCommandPool(ctx.device, commandPool, nullptr);
+  vkDestroyShaderModule(ctx.device, shaderModule, nullptr);
+  vmaDestroyAllocator(ctx.allocator);
   SDL_DestroyWindow(window);
   SDL_QuitSubSystem(SDL_INIT_VIDEO);
   SDL_Quit();
-  vkDestroyDevice(device, nullptr);
-  vkDestroyInstance(instance, nullptr);
+  vkDestroyDevice(ctx.device, nullptr);
+  vkDestroyInstance(ctx.instance, nullptr);
   return 0;
 }

@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Glob all .cpp files under source/ recursively
-file(GLOB_RECURSE SOURCES "source/*.cpp")
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "source/*.cpp")
 
 include(FetchContent)
 
