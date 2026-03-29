@@ -34,3 +34,6 @@ CMakeFiles/
 cmake_install.cmake
 .cache
 assets/scenes
+
+combined_codebase.md
+tools/
