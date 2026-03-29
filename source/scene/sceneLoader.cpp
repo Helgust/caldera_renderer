@@ -1,5 +1,4 @@
-#include "sceneLoader.h"
-
+#include "scene/sceneLoader.h"
 #include <iostream>
 #include <stdexcept>
 #include <unordered_map>
@@ -9,6 +8,8 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "tiny_gltf.h"
 
+namespace caldera {
+
 Scene SceneLoader::load(const std::string& path) {
   tinygltf::Model model;
   tinygltf::TinyGLTF loader;
@@ -17,24 +18,18 @@ Scene SceneLoader::load(const std::string& path) {
 
   const bool loaded = loader.LoadASCIIFromFile(&model, &err, &warn, path);
 
-  if (!warn.empty()) {
-    std::cout << "glTF warning: " << warn << std::endl;
-  }
-
-  if (!err.empty()) {
-    std::cout << "glTF error: " << err << std::endl;
-  }
-
-  if (!loaded) {
+  if (!warn.empty())
+    std::cout << "glTF warning: " << warn << "\n";
+  if (!err.empty())
+    std::cout << "glTF error: " << err << "\n";
+  if (!loaded)
     throw std::runtime_error("Failed to load glTF model");
-  }
 
   Scene scene;
   std::unordered_map<Vertex, uint16_t> uniqueVertices;
 
   for (const auto& mesh : model.meshes) {
     for (const auto& primitive : mesh.primitives) {
-      // Get indices
       const tinygltf::Accessor& indexAccessor =
         model.accessors[primitive.indices];
       const tinygltf::BufferView& indexBufferView =
@@ -42,20 +37,17 @@ Scene SceneLoader::load(const std::string& path) {
       const tinygltf::Buffer& indexBuffer =
         model.buffers[indexBufferView.buffer];
 
-      // Get vertex positions
       const tinygltf::Accessor& posAccessor =
         model.accessors[primitive.attributes.at("POSITION")];
       const tinygltf::BufferView& posBufferView =
         model.bufferViews[posAccessor.bufferView];
       const tinygltf::Buffer& posBuffer = model.buffers[posBufferView.buffer];
 
-      // Get texture coordinates if available
       bool hasTexCoords =
         primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end();
       const tinygltf::Accessor* texCoordAccessor = nullptr;
       const tinygltf::BufferView* texCoordBufferView = nullptr;
       const tinygltf::Buffer* texCoordBuffer = nullptr;
-
       if (hasTexCoords) {
         texCoordAccessor =
           &model.accessors[primitive.attributes.at("TEXCOORD_0")];
@@ -65,11 +57,9 @@ Scene SceneLoader::load(const std::string& path) {
 
       bool hasNormals =
         primitive.attributes.find("NORMAL") != primitive.attributes.end();
-
       const tinygltf::Accessor* normalAccessor = nullptr;
       const tinygltf::BufferView* normalBufferView = nullptr;
       const tinygltf::Buffer* normalBuffer = nullptr;
-
       if (hasNormals) {
         normalAccessor = &model.accessors[primitive.attributes.at("NORMAL")];
         normalBufferView = &model.bufferViews[normalAccessor->bufferView];
@@ -82,7 +72,6 @@ Scene SceneLoader::load(const std::string& path) {
 
       for (size_t i = 0; i < indexAccessor.count; i++) {
         uint16_t index = 0;
-
         if (indexAccessor.componentType ==
             TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
           index = reinterpret_cast<const uint16_t*>(indexData)[i];
@@ -97,47 +86,35 @@ Scene SceneLoader::load(const std::string& path) {
 
         Vertex vertex{};
 
-        // ===== POSITION =====
         size_t posStride = posAccessor.ByteStride(posBufferView);
-        if (posStride == 0) {
+        if (posStride == 0)
           posStride = sizeof(float) * 3;
-        }
-
         const float* pos = reinterpret_cast<const float*>(
           &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset +
                           index * posStride]);
-
         vertex.pos = {pos[0], pos[1], pos[2]};
 
-        // ===== NORMAL =====
         if (hasNormals) {
           size_t normalStride = normalAccessor->ByteStride(*normalBufferView);
-          if (normalStride == 0) {
+          if (normalStride == 0)
             normalStride = sizeof(float) * 3;
-          }
-
           const float* normal = reinterpret_cast<const float*>(
             &normalBuffer
                ->data[normalBufferView->byteOffset +
                       normalAccessor->byteOffset + index * normalStride]);
-
           vertex.normal = {normal[0], normal[1], normal[2]};
         } else {
           vertex.normal = {0.0f, 0.0f, 1.0f};
         }
 
-        // ===== UV =====
         if (hasTexCoords) {
           size_t uvStride = texCoordAccessor->ByteStride(*texCoordBufferView);
-          if (uvStride == 0) {
+          if (uvStride == 0)
             uvStride = sizeof(float) * 2;
-          }
-
           const float* uv = reinterpret_cast<const float*>(
             &texCoordBuffer
                ->data[texCoordBufferView->byteOffset +
                       texCoordAccessor->byteOffset + index * uvStride]);
-
           vertex.uv = {uv[0], uv[1]};
         } else {
           vertex.uv = {0.0f, 0.0f};
@@ -145,27 +122,23 @@ Scene SceneLoader::load(const std::string& path) {
 
         vertex.color = {1.0f, 1.0f, 1.0f};
 
-        // ===== DEDUP =====
         if (!uniqueVertices.contains(vertex)) {
           uniqueVertices[vertex] =
             static_cast<uint16_t>(scene.mesh.vertices.size());
           scene.mesh.vertices.push_back(vertex);
         }
-
         scene.mesh.indices.push_back(uniqueVertices[vertex]);
       }
     }
   }
 
-  // Load images
   scene.images.reserve(model.images.size());
   for (const auto& image : model.images) {
     scene.images.push_back(ImageData{
-      .width = image.width,
-      .height = image.height,
-      .pixels = image.image,
-    });
+      .width = image.width, .height = image.height, .pixels = image.image});
   }
 
   return scene;
 }
+
+}  // namespace caldera

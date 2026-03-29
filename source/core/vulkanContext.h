@@ -1,11 +1,10 @@
 #pragma once
 #include <vma/vk_mem_alloc.h>
 #include <volk/volk.h>
-#include <vector>
+#include <cstdio>
 
 namespace caldera {
 
-// Thin check helpers — used by every module
 static inline void vkCheck(VkResult r) {
   if (r != VK_SUCCESS) {
     fprintf(stderr, "Vulkan error: %d\n", r);

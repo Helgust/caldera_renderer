@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Glob all .cpp files under source/ recursively
+# Picks up core/, resources/, rendering/, scene/, and main.cpp automatically
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "source/*.cpp")
 
 include(FetchContent)
@@ -28,7 +29,6 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
     GIT_TAG release
 )
-
 FetchContent_MakeAvailable(tinygltf)
 
 # ----------------------------------
@@ -40,7 +40,6 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
     GIT_TAG docking
 )
-
 FetchContent_MakeAvailable(imgui)
 
 # ----------------------------------
@@ -59,7 +58,6 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software.git
     GIT_TAG main
 )
-
 FetchContent_MakeAvailable(ktx)
 
 find_library(SDL_LIBRARY NAMES SDL3 HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
@@ -80,12 +78,6 @@ set(IMGUI_SRC
 )
 
 # ----------------------------------
-# Scene module
-# ----------------------------------
-
-add_subdirectory(source/scene)
-
-# ----------------------------------
 # Executable
 # ----------------------------------
 
@@ -94,21 +86,23 @@ add_executable(${NAME}
     ${IMGUI_SRC}
 )
 
-target_compile_definitions(${NAME} PRIVATE VK_NO_PROTOTYPES)
-target_compile_features(${NAME} PRIVATE cxx_std_20)
-set_target_properties(${NAME} PROPERTIES DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
 target_compile_definitions(${NAME} PRIVATE
+    VK_NO_PROTOTYPES
     ASSET_PATH="${CMAKE_SOURCE_DIR}/assets/"
     SHADER_PATH="${CMAKE_SOURCE_DIR}/shaders/"
-
 )
 
+target_compile_features(${NAME} PRIVATE cxx_std_20)
+
+set_target_properties(${NAME} PROPERTIES
+    DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 target_include_directories(${NAME} PRIVATE
-    source/
-    ${tinygltf_SOURCE_DIR}
+    source/                        # lets includes like "core/vulkanContext.h" resolve
+    ${tinygltf_SOURCE_DIR}         # for tiny_gltf.h in sceneLoader.cpp
     ${imgui_SOURCE_DIR}
+    $ENV{VULKAN_SDK}/Include       # for volk, vma, slang headers
 )
 
 target_link_libraries(${NAME} PRIVATE
@@ -116,5 +110,4 @@ target_link_libraries(${NAME} PRIVATE
     ktx
     ${SDL_LIBRARY}
     ${Slang_LIBRARY}
-    scene
 )

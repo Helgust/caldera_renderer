@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -8,6 +7,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
+
+namespace caldera {
 
 struct Vertex {
   glm::vec3 pos;
@@ -23,18 +24,21 @@ struct Vertex {
   }
 };
 
+}  // namespace caldera
+
+// Hash must live in std:: — specialise on the fully-qualified type
 namespace std {
 template <>
-struct hash<Vertex> {
-  size_t operator()(Vertex const& vertex) const {
-    return ((hash<glm::vec3>()(vertex.pos) ^
-             (hash<glm::vec3>()(vertex.normal) << 1)) >>
+struct hash<caldera::Vertex> {
+  size_t operator()(caldera::Vertex const& v) const {
+    return ((hash<glm::vec3>()(v.pos) ^ (hash<glm::vec3>()(v.normal) << 1)) >>
             1) ^
-           (hash<glm::vec3>()(vertex.color) << 1) ^
-           (hash<glm::vec2>()(vertex.uv) << 1);
+           (hash<glm::vec3>()(v.color) << 1) ^ (hash<glm::vec2>()(v.uv) << 1);
   }
 };
 }  // namespace std
+
+namespace caldera {
 
 struct Mesh {
   std::vector<Vertex> vertices;
@@ -56,3 +60,5 @@ class SceneLoader {
  public:
   Scene load(const std::string& path);
 };
+
+}  // namespace caldera
