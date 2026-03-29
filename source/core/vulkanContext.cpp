@@ -18,10 +18,10 @@ void VulkanContext::init(uint32_t deviceIndex) {
   const char* const* exts = SDL_Vulkan_GetInstanceExtensions(&extCount);
 
   VkInstanceCreateInfo instanceCI{
-      .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-      .pApplicationInfo = &appInfo,
-      .enabledExtensionCount = extCount,
-      .ppEnabledExtensionNames = exts};
+    .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+    .pApplicationInfo = &appInfo,
+    .enabledExtensionCount = extCount,
+    .ppEnabledExtensionNames = exts};
   vkCheck(vkCreateInstance(&instanceCI, nullptr, &instance));
   volkLoadInstance(instance);
 
@@ -34,7 +34,7 @@ void VulkanContext::init(uint32_t deviceIndex) {
   physicalDevice = devices[deviceIndex];
 
   VkPhysicalDeviceProperties2 props{
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
   vkGetPhysicalDeviceProperties2(physicalDevice, &props);
   std::cout << "Selected device: " << props.properties.deviceName << "\n";
 
@@ -54,24 +54,24 @@ void VulkanContext::init(uint32_t deviceIndex) {
   // Logical device — your full feature chain
   const float priority{1.0f};
   VkDeviceQueueCreateInfo queueCI{
-      .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-      .queueFamilyIndex = graphicsFamily,
-      .queueCount = 1,
-      .pQueuePriorities = &priority};
+    .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+    .queueFamilyIndex = graphicsFamily,
+    .queueCount = 1,
+    .pQueuePriorities = &priority};
 
   VkPhysicalDeviceVulkan12Features vk12{
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-      .descriptorIndexing = true,
-      .shaderSampledImageArrayNonUniformIndexing = true,
-      .descriptorBindingVariableDescriptorCount = true,
-      .runtimeDescriptorArray = true,
-      .bufferDeviceAddress = true};
+    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+    .descriptorIndexing = true,
+    .shaderSampledImageArrayNonUniformIndexing = true,
+    .descriptorBindingVariableDescriptorCount = true,
+    .runtimeDescriptorArray = true,
+    .bufferDeviceAddress = true};
 
   VkPhysicalDeviceVulkan13Features vk13{
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-      .pNext = &vk12,
-      .synchronization2 = true,
-      .dynamicRendering = true};
+    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+    .pNext = &vk12,
+    .synchronization2 = true,
+    .dynamicRendering = true};
 
   VkPhysicalDeviceFeatures vk10{.samplerAnisotropy = VK_TRUE};
 
@@ -91,11 +91,11 @@ void VulkanContext::init(uint32_t deviceIndex) {
                             .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
                             .vkCreateImage = vkCreateImage};
   VmaAllocatorCreateInfo allocCI{
-      .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
-      .physicalDevice = physicalDevice,
-      .device = device,
-      .pVulkanFunctions = &vmaFns,
-      .instance = instance};
+    .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+    .physicalDevice = physicalDevice,
+    .device = device,
+    .pVulkanFunctions = &vmaFns,
+    .instance = instance};
   vkCheck(vmaCreateAllocator(&allocCI, &allocator));
 }
 
