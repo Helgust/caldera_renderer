@@ -1,9 +1,10 @@
 #include "core/vulkanContext.h"
 #include <SDL3/SDL_vulkan.h>
+#include <algorithm>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <vector>
-#include "core/validation.h"
 
 namespace caldera {
 
@@ -19,6 +20,19 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
   return VK_FALSE;
 }
 
+static bool hasLayer(const char* name) {
+  uint32_t count{0};
+  if (vkEnumerateInstanceLayerProperties(&count, nullptr) != VK_SUCCESS)
+    return false;
+  std::vector<VkLayerProperties> props(count);
+  if (vkEnumerateInstanceLayerProperties(&count, props.data()) != VK_SUCCESS)
+    return false;
+  return std::any_of(props.begin(), props.end(),
+                     [&](const VkLayerProperties& p) {
+                       return std::strcmp(p.layerName, name) == 0;
+                     });
+}
+
 void VulkanContext::init(uint32_t deviceIndex) {
   // Taken directly from your main() — Instance block
   volkInitialize();
@@ -31,33 +45,39 @@ void VulkanContext::init(uint32_t deviceIndex) {
   const char* const* sdlExts = SDL_Vulkan_GetInstanceExtensions(&extCount);
 
 #ifdef NDEBUG
-  constexpr bool enableValidation = false;
+  constexpr bool wantValidation = false;
 #else
-  constexpr bool enableValidation = true;
+  constexpr bool wantValidation = true;
 #endif
+
+  const char* kValidationLayer = "VK_LAYER_KHRONOS_validation";
+  const bool enableValidation = wantValidation && hasLayer(kValidationLayer);
+  if (wantValidation && !enableValidation) {
+    std::cerr << "[VK WARN ] " << kValidationLayer
+              << " not available — continuing without validation. "
+                 "Install the Vulkan SDK or set VK_LAYER_PATH.\n";
+  }
 
   std::vector<const char*> exts(sdlExts, sdlExts + extCount);
   if (enableValidation)
     exts.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-  // Create an object with all the settigns initialized
-  LayerSettings layerSettings;
+  const char* layers[] = {kValidationLayer};
 
-  // We can modify the setting values:
-  layerSettings.validation.report_flags = {"error", "warn"};
-
-  std::vector<VkLayerSettingEXT> layerSettingInfo = layerSettings.info();
-
-  const VkLayerSettingsCreateInfoEXT layerSettingsCI = {
-    VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT, nullptr,
-    static_cast<uint32_t>(layerSettingInfo.size()), layerSettingInfo.data()};
-  const char* layers[] = {"VK_LAYER_KHRONOS_validation"};
+  VkDebugUtilsMessengerCreateInfoEXT messengerCI{
+    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+    .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                       VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+    .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                   VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                   VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+    .pfnUserCallback = debugCallback};
 
   VkInstanceCreateInfo instanceCI{
     .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-    .pNext = enableValidation ? &layerSettingsCI : nullptr,
+    .pNext = enableValidation ? &messengerCI : nullptr,
     .pApplicationInfo = &appInfo,
-    .enabledLayerCount = enableValidation ? 1 : 0,
+    .enabledLayerCount = enableValidation ? 1u : 0u,
     .ppEnabledLayerNames = enableValidation ? layers : nullptr,
     .enabledExtensionCount = static_cast<uint32_t>(exts.size()),
     .ppEnabledExtensionNames = exts.data()};
@@ -65,14 +85,6 @@ void VulkanContext::init(uint32_t deviceIndex) {
   volkLoadInstance(instance);
 
   if (enableValidation) {
-    VkDebugUtilsMessengerCreateInfoEXT messengerCI{
-      .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-      .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                         VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-      .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                     VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                     VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-      .pfnUserCallback = debugCallback};
     vkCheck(vkCreateDebugUtilsMessengerEXT(instance, &messengerCI, nullptr,
                                            &debugMessenger));
   }
