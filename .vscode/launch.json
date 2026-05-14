@@ -5,19 +5,10 @@
       "name": "CalderaRenderer",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/Debug/CalderaRenderer.exe",
-      "args": [],
+      "program": "${workspaceFolder}/build/CalderaRenderer.exe",
+      "args": ["--scene", "${config:launchOption.currentConfig.Scene}"],
       "cwd": "${workspaceFolder}",
       "stopAtEntry": false
     },
-    {
-      "name": "CalderaRenderer — Demo Scene",
-      "type": "cppvsdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/build/Debug/CalderaRenderer.exe",
-      "args": ["--scene", "${workspaceFolder}/assets/scenes/damaged-helmet/damaged-helmet.gltf"],
-      "cwd": "${workspaceFolder}",
-      "stopAtEntry": false
-    }
   ]
 }

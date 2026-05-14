@@ -1,5 +1,14 @@
 {
-  "launchOption.currentConfig": {},
+  "launchOption.options": {
+    "Scene": [
+      { "name": "Damaged Helmet", "value": "assets/scenes/damaged-helmet/damaged-helmet.gltf" },
+      { "name": "Sponza",         "value": "assets/scenes/sponza/sponza.gltf" },
+      { "name": "Triangle",       "value": "assets/scenes/triangle/triangle.gltf" }
+    ]
+  },
+  "launchOption.currentConfig": {
+    "Scene": "assets/scenes/sponza/sponza.gltf"
+  },
   "cmake.debugConfig": {
     "args": []
   }
