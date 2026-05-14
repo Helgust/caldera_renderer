@@ -7,8 +7,12 @@
 # shaders
 *.spv
 
-# vscode
-.vscode
+# vscode — track workspace config, ignore user-specific files
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
 *.code-workspace
 
 # git folders

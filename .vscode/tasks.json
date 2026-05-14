@@ -1,0 +1,97 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run clang-tidy current file",
+      "type": "shell",
+      "command": "clang-tidy",
+      "args": [
+        "${file}",
+        "-p",
+        "build"
+      ],
+      "problemMatcher": "$gcc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Git Push",
+      "type": "shell",
+      "command": "git push -u origin main",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+      }
+    },
+    {
+      "label": "Clang format changed files",
+      "type": "shell",
+      "command": "git diff -U0 | python tools/clang-format-diff.py -i -p1",
+      "problemMatcher": []
+    },
+    {
+      "label": "Clang format last commit",
+      "type": "shell",
+      "command": "git diff -U0 HEAD~1 | python tools/clang-format-diff.py -i -p1",
+      "problemMatcher": []
+    },
+    {
+      "label": "Clang format last commit",
+      "type": "shell",
+      "command": "git diff -U0 HEAD~1 | python tools/clang-format-diff.py -i -p1",
+      "problemMatcher": []
+    },
+    {
+      "label": "Clang format current file",
+      "type": "shell",
+      "command": "clang-format",
+      "args":[
+        "-i",
+        "${file}"
+      ],
+      "options": {"cwd": "${workspaceFolder}"},
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Open Vulkan Validation Log",
+      "type": "shell",
+      "command": "code '${workspaceFolder}/build/validation.log'",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Bundle Codebase for Claude",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "tools/codebase_bundler.py"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+  ]
+}

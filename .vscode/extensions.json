@@ -1,0 +1,20 @@
+{
+  "recommendations": [
+    // C++ IntelliSense and debugging
+    "ms-vscode.cpptools",
+    "ms-vscode.cpptools-extension-pack",
+
+    // CMake
+    "ms-vscode.cmake-tools",
+    "twxs.cmake",
+
+    // Clang tooling
+    "llvm-vs-code-extensions.vscode-clangd",
+
+    // GLSL / shader editing
+    "slevesque.shader",
+
+    // Git
+    "eamodio.gitlens"
+  ]
+}
