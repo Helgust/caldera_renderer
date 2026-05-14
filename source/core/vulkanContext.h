@@ -26,6 +26,7 @@ struct VulkanContext {
   VkQueue graphicsQueue{VK_NULL_HANDLE};
   uint32_t graphicsFamily{0};
   VmaAllocator allocator{VK_NULL_HANDLE};
+  VkDebugUtilsMessengerEXT debugMessenger{VK_NULL_HANDLE};
 
   void init(uint32_t deviceIndex = 0);
   void destroy();
