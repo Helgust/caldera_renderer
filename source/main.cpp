@@ -11,6 +11,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <string>
+#include <string_view>
+
 #include "core/commandManager.h"
 #include "core/swapchain.h"
 #include "core/syncObjects.h"
@@ -105,11 +108,29 @@ static void uploadTexture(VulkanContext& ctx,
 // -----------------------------------------------------------------------
 // main
 // -----------------------------------------------------------------------
+static void printUsage(const char* exe) {
+  SDL_Log("Usage: %s [--device <index>] [--scene <gltf-path>]", exe);
+}
+
 int main(int argc, char* argv[]) {
   sdlCheck(SDL_Init(SDL_INIT_VIDEO));
   sdlCheck(SDL_Vulkan_LoadLibrary(NULL));
 
-  uint32_t deviceIndex = (argc > 1) ? std::stoi(argv[1]) : 0;
+  uint32_t deviceIndex = 0;
+  std::string scenePath =
+    std::string(ASSET_PATH) + "scenes/damaged-helmet/damaged-helmet.gltf";
+
+  for (int i = 1; i < argc; ++i) {
+    std::string_view arg{argv[i]};
+    if ((arg == "--device" || arg == "-d") && i + 1 < argc) {
+      deviceIndex = static_cast<uint32_t>(std::stoi(argv[++i]));
+    } else if ((arg == "--scene" || arg == "-s") && i + 1 < argc) {
+      scenePath = argv[++i];
+    } else {
+      SDL_Log("Unknown argument: %s", argv[i]);
+      printUsage(argv[0]);
+    }
+  }
 
   // --- Core ---
   VulkanContext ctx;
@@ -144,8 +165,7 @@ int main(int argc, char* argv[]) {
 
   // --- Scene ---
   SceneLoader sceneLoader;
-  Scene scene = sceneLoader.load(std::string(ASSET_PATH) +
-                                 "scenes/damaged-helmet/damaged-helmet.gltf");
+  Scene scene = sceneLoader.load(scenePath);
 
   const auto& vertices = scene.mesh.vertices;
   const auto& indices = scene.mesh.indices;
