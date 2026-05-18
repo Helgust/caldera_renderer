@@ -13,6 +13,10 @@ The project is intended to showcase the following competencies:
 
 This roadmap is divided into **4 major phases** that correspond roughly to development quarters.
 
+> **Detailed implementation tickets** (per-step goals, target files, verification criteria) live in
+> the Notion board: *Caldera Renderer — Development Roadmap*. Items tagged `CLR — Step X.Y` below
+> map 1:1 to those tickets. `TODO.md` holds the active near-term backlog.
+
 ---
 
 # Project Goals
@@ -43,50 +47,57 @@ Estimated timeline: 2–3 months.
 ## Core Vulkan Setup
 
 * [x] Instance creation
-* [ ] Validation layers
+* [ ] Validation layers (CLR — Step 1.1)
 * [x] Physical device selection
-* [x] Logical device creation
-* [] Queue management
+* [x] Logical device creation (Vulkan 1.2/1.3 feature chains)
+* [x] Queue management (graphics queue family selection)
 
 ## Window & Swapchain
 
-* [ ] Surface creation
-* [ ] Swapchain creation
-* [ ] Image views
-* [ ] Framebuffers
-* [ ] Resize handling
+* [x] Surface creation (SDL3)
+* [x] Swapchain creation (FIFO present mode)
+* [x] Image views
+* [x] Framebuffers (using dynamic rendering — no VkFramebuffer needed)
+* [x] Resize handling (swapchain recreation)
 
 ## Command System
 
-* [ ] Command pool management
-* [ ] Command buffer recording
-* [ ] Frame synchronization (fences/semaphores)
+* [x] Command pool management (per-frame, RESET_COMMAND_BUFFER)
+* [x] Command buffer recording
+* [x] Frame synchronization (fences/semaphores, N=2 in flight)
 
 ## Resource Management
 
-* [ ] GPU buffer abstraction
-* [ ] Image abstraction
-* [ ] Memory allocation strategy
-* [ ] Descriptor pool allocator
+* [x] GPU buffer abstraction (VMA, host-visible & GPU-only, BDA)
+* [x] Image abstraction (create2D, Synchronization2 layout transitions)
+* [x] Memory allocation strategy (VMA)
+* [ ] Descriptor pool allocator (CLR — Step 2.2; currently hardcoded single pool)
 
 ## Pipeline System
 
-* [ ] Pipeline builder abstraction
-* [ ] Shader module loader
-* [ ] Descriptor set layout system
-* [ ] Graphics pipeline creation
+* [x] Pipeline builder abstraction (fluent GraphicsPipelineBuilder)
+* [x] Shader module loader (Slang → SPIR-V at runtime)
+* [ ] Descriptor set layout system (CLR — Step 2.2; currently inline in main.cpp)
+* [x] Graphics pipeline creation (dynamic rendering)
 
 ## Scene Rendering
 
-* [ ] Mesh loading (GLTF)
-* [ ] Camera system
+* [x] Mesh loading (GLTF via tinygltf, vertex dedup)
+* [ ] Camera system (CLR — currently fixed matrices in main.cpp)
 * [ ] Basic scene graph (minimal)
-* [ ] Depth buffer
+* [x] Depth buffer
 
 ## Lighting
 
-* [ ] Directional light
-* [ ] Basic shadow mapping
+* [x] Directional light (Phong, hardcoded in shader.slang)
+* [ ] Basic shadow mapping (CLR — Step 3.3)
+
+## Tooling & Debugging (added per plan)
+
+* [ ] Debug labels / object names (CLR — Step 1.2)
+* [ ] GPU timestamp queries (CLR — Step 1.3)
+* [ ] ImGui overlay integration (CLR — Step 1.4; compiled, not wired)
+* [ ] Synchronization audit & tightening (CLR — Step 1.5)
 
 ---
 
@@ -107,9 +118,14 @@ Estimated timeline: 3–4 months.
 
 ## Rendering Architecture
 
-* [ ] Frame graph / render graph
-* [ ] Render pass abstraction
-* [ ] Resource lifetime management
+* [ ] Resource manager / deletion queue (CLR — Step 2.1)
+* [ ] Descriptor allocator + layout builder (CLR — Step 2.2)
+* [ ] Material system (CLR — Step 2.3)
+* [ ] Shader reflection (CLR — Step 2.4, optional)
+* [ ] Render graph: data structures (CLR — Step 2.5a)
+* [ ] Render graph: resource/dependency tracking (CLR — Step 2.5b)
+* [ ] Render graph: automatic barrier generation (CLR — Step 2.5c)
+* [ ] Render graph: transient resource aliasing (CLR — Step 2.5d)
 
 ## Lighting Improvements
 
