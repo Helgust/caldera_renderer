@@ -18,6 +18,7 @@
 #include "core/swapchain.h"
 #include "core/syncObjects.h"
 #include "core/vulkanContext.h"
+#include "rendering/framegraph.h"
 #include "rendering/pipeline.h"
 #include "rendering/shader.h"
 #include "resources/buffer.h"
@@ -341,100 +342,47 @@ int main(int argc, char* argv[]) {
       .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
     vkCheck(vkBeginCommandBuffer(cb, &cbBI));
 
-    // Transition swapchain + depth to attachment
-    std::array<VkImageMemoryBarrier2, 2> outputBarriers{
-      VkImageMemoryBarrier2{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-        .srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .srcAccessMask = 0,
-        .dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-        .image = swapchain.images[imageIndex],
-        .subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                          .levelCount = 1,
-                          .layerCount = 1}},
-      VkImageMemoryBarrier2{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-        .srcStageMask = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-        .srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-        .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-        .image = depthImage.handle,
-        .subresourceRange{
-          .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
-          .levelCount = 1,
-          .layerCount = 1}}};
-    VkDependencyInfo depInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                             .imageMemoryBarrierCount = 2,
-                             .pImageMemoryBarriers = outputBarriers.data()};
-    vkCmdPipelineBarrier2(cb, &depInfo);
+    // Frame graph: declare resources + passes, let it insert barriers
+    // and drive dynamic rendering. Swapchain image and depth are imported
+    // (owned elsewhere), so no per-frame allocation happens here.
+    FrameGraph fg(ctx);
+    FgResource backbuffer = fg.importImage(
+      "backbuffer", swapchain.images[imageIndex], swapchain.views[imageIndex],
+      swapchain.format, swapchain.extent);
+    FgResource depth =
+      fg.importImage("depth", depthImage.handle, depthImage.view, depthFormat,
+                     swapchain.extent);
 
-    // Dynamic rendering
-    VkRenderingAttachmentInfo colorAttach{
-      .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-      .imageView = swapchain.views[imageIndex],
-      .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-      .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-      .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-      .clearValue{.color{0.0f, 0.0f, 0.0f, 1.0f}}};
-    VkRenderingAttachmentInfo depthAttach{
-      .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-      .imageView = depthImage.view,
-      .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-      .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-      .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-      .clearValue = {.depthStencil = {1.0f, 0}}};
-    VkRenderingInfo renderingInfo{.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-                                  .renderArea{.extent = swapchain.extent},
-                                  .layerCount = 1,
-                                  .colorAttachmentCount = 1,
-                                  .pColorAttachments = &colorAttach,
-                                  .pDepthAttachment = &depthAttach};
-    vkCmdBeginRendering(cb, &renderingInfo);
+    fg.addPass(
+      "forward",
+      {{backbuffer, FgUsage::ColorAttachment},
+       {depth, FgUsage::DepthAttachment}},
+      [&](VkCommandBuffer cb) {
+        VkViewport vp{.width = static_cast<float>(windowSize.x),
+                      .height = static_cast<float>(windowSize.y),
+                      .minDepth = 0.0f,
+                      .maxDepth = 1.0f};
+        vkCmdSetViewport(cb, 0, 1, &vp);
+        VkRect2D scissor{.extent = swapchain.extent};
+        vkCmdSetScissor(cb, 0, 1, &scissor);
 
-    VkViewport vp{.width = static_cast<float>(windowSize.x),
-                  .height = static_cast<float>(windowSize.y),
-                  .minDepth = 0.0f,
-                  .maxDepth = 1.0f};
-    vkCmdSetViewport(cb, 0, 1, &vp);
-    VkRect2D scissor{.extent = swapchain.extent};
-    vkCmdSetScissor(cb, 0, 1, &scissor);
+        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pipelineLayout, 0, 1, &descriptorSet, 0,
+                                nullptr);
+        VkDeviceSize vOffset{0};
+        vkCmdBindVertexBuffers(cb, 0, 1, &geometryBuffer.handle, &vOffset);
+        vkCmdBindIndexBuffer(cb, geometryBuffer.handle, vBufSize,
+                             VK_INDEX_TYPE_UINT16);
+        vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                           sizeof(VkDeviceAddress),
+                           &shaderDataBuffers[frameIndex].deviceAddress);
+        vkCmdDrawIndexed(cb, static_cast<uint32_t>(indices.size()), 3, 0, 0, 0);
+      });
 
-    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-    vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                            0, 1, &descriptorSet, 0, nullptr);
-    VkDeviceSize vOffset{0};
-    vkCmdBindVertexBuffers(cb, 0, 1, &geometryBuffer.handle, &vOffset);
-    vkCmdBindIndexBuffer(cb, geometryBuffer.handle, vBufSize,
-                         VK_INDEX_TYPE_UINT16);
-    vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                       sizeof(VkDeviceAddress),
-                       &shaderDataBuffers[frameIndex].deviceAddress);
-    vkCmdDrawIndexed(cb, static_cast<uint32_t>(indices.size()), 3, 0, 0, 0);
-    vkCmdEndRendering(cb);
+    fg.addPass("present", {{backbuffer, FgUsage::Present}}, {});
 
-    // Transition swapchain to present
-    VkImageMemoryBarrier2 presentBarrier{
-      .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-      .srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-      .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-      .dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-      .dstAccessMask = 0,
-      .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-      .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-      .image = swapchain.images[imageIndex],
-      .subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                        .levelCount = 1,
-                        .layerCount = 1}};
-    VkDependencyInfo presentDep{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                                .imageMemoryBarrierCount = 1,
-                                .pImageMemoryBarriers = &presentBarrier};
-    vkCmdPipelineBarrier2(cb, &presentDep);
+    fg.execute(cb);
     vkCheck(vkEndCommandBuffer(cb));
 
     // Submit

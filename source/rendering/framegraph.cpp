@@ -1,0 +1,181 @@
+#include "rendering/framegraph.h"
+
+#include <array>
+
+#include "core/vulkanContext.h"
+
+namespace caldera {
+
+// FgUsage → the (layout, stage, access) a resource must be in for that use.
+// This table is the graph's job: it replaces the hand-written barriers
+// that used to live inline in the render loop.
+static FgResourceState requiredState(FgUsage u) {
+  switch (u) {
+    case FgUsage::ColorAttachment:
+      return {VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+              VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+              VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT |
+                VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT};
+    case FgUsage::DepthAttachment:
+      return {VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+              VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+              VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT};
+    case FgUsage::SampledRead:
+      return {VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+              VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+              VK_ACCESS_2_SHADER_SAMPLED_READ_BIT};
+    case FgUsage::Present:
+      return {VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+              VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+              VK_ACCESS_2_NONE};
+  }
+  return {};
+}
+
+// Barrier subresource aspect must cover stencil too for combined formats.
+static VkImageAspectFlags barrierAspect(VkFormat f) {
+  switch (f) {
+    case VK_FORMAT_D32_SFLOAT_S8_UINT:
+    case VK_FORMAT_D24_UNORM_S8_UINT:
+      return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+    case VK_FORMAT_D32_SFLOAT:
+    case VK_FORMAT_D16_UNORM:
+      return VK_IMAGE_ASPECT_DEPTH_BIT;
+    default:
+      return VK_IMAGE_ASPECT_COLOR_BIT;
+  }
+}
+
+FrameGraph::FrameGraph(VulkanContext& ctx) : ctx_(ctx) {}
+
+FrameGraph::~FrameGraph() {
+  reset();
+}
+
+FgResource FrameGraph::importImage(const char* name, VkImage handle,
+                                   VkImageView view, VkFormat format,
+                                   VkExtent2D extent) {
+  Resource r{};
+  r.desc = {.name = name,
+            .format = format,
+            .extent = extent,
+            .usage = 0,
+            .aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+            .imported = true};
+  r.image.handle = handle;
+  r.image.view = view;
+  r.image.format = format;
+  r.image.extent = {extent.width, extent.height, 1};
+  r.state = {};  // swapchain image is effectively UNDEFINED after acquire
+  r.owned = false;
+  resources_.push_back(std::move(r));
+  return static_cast<FgResource>(resources_.size() - 1);
+}
+
+FgResource FrameGraph::createImage(const FgResourceDesc& desc) {
+  Resource r{};
+  r.desc = desc;
+  r.desc.imported = false;
+  r.image = Image::create2D(ctx_.allocator, ctx_.device, desc.format,
+                            desc.extent, desc.usage, desc.aspect);
+  r.state = {};
+  r.owned = true;
+  resources_.push_back(std::move(r));
+  return static_cast<FgResource>(resources_.size() - 1);
+}
+
+void FrameGraph::addPass(const char* name,
+                         std::vector<std::pair<FgResource, FgUsage>> accesses,
+                         std::function<void(VkCommandBuffer)> execute) {
+  passes_.push_back({.name = name,
+                     .accesses = std::move(accesses),
+                     .execute = std::move(execute)});
+}
+
+void FrameGraph::beginRendering(VkCommandBuffer cb, const FgPass& pass,
+                                bool& outBegan) {
+  std::array<VkRenderingAttachmentInfo, 8> colors{};
+  uint32_t colorCount{0};
+  VkRenderingAttachmentInfo depth{};
+  bool hasDepth{false};
+  VkExtent2D area{};
+
+  for (const auto& [res, usage] : pass.accesses) {
+    const Resource& r = resources_[res];
+    if (usage == FgUsage::ColorAttachment) {
+      colors[colorCount++] = {
+        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        .imageView = r.image.view,
+        .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .clearValue{.color{{0.0f, 0.0f, 0.0f, 1.0f}}}};
+      area = r.desc.extent;
+    } else if (usage == FgUsage::DepthAttachment) {
+      depth = {.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+               .imageView = r.image.view,
+               .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+               .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+               .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+               .clearValue{.depthStencil = {1.0f, 0}}};
+      hasDepth = true;
+      if (colorCount == 0)
+        area = r.desc.extent;
+    }
+  }
+
+  if (colorCount == 0 && !hasDepth) {
+    outBegan = false;
+    return;  // e.g. a present-only pass — barrier work, no rendering
+  }
+
+  VkRenderingInfo info{
+    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+    .renderArea{.extent = area},
+    .layerCount = 1,
+    .colorAttachmentCount = colorCount,
+    .pColorAttachments = colorCount ? colors.data() : nullptr,
+    .pDepthAttachment = hasDepth ? &depth : nullptr};
+  vkCmdBeginRendering(cb, &info);
+  outBegan = true;
+}
+
+void FrameGraph::execute(VkCommandBuffer cb) {
+  for (const FgPass& pass : passes_) {
+    // 1. Transition each accessed resource from its last-known state.
+    for (const auto& [res, usage] : pass.accesses) {
+      Resource& r = resources_[res];
+      const FgResourceState want = requiredState(usage);
+      const FgResourceState cur = r.state;
+      r.image.transitionLayout(cb, cur.layout, want.layout, cur.stage,
+                               cur.access, want.stage, want.access,
+                               barrierAspect(r.desc.format));
+      r.state = want;
+    }
+
+    // 2. Drive dynamic rendering for attachment passes.
+    bool began{false};
+    beginRendering(cb, pass, began);
+
+    // 3. User records draws.
+    if (pass.execute)
+      pass.execute(cb);
+
+    // 4. Close the render scope.
+    if (began)
+      vkCmdEndRendering(cb);
+  }
+}
+
+void FrameGraph::reset() {
+  for (Resource& r : resources_) {
+    if (r.owned)
+      r.image.destroy(ctx_.device, ctx_.allocator);
+  }
+  resources_.clear();
+  passes_.clear();
+}
+
+}  // namespace caldera
