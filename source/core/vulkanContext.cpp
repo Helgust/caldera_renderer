@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iostream>
 #include <vector>
+#include "core/debugUtils.h"
 
 namespace caldera {
 
@@ -83,6 +84,11 @@ void VulkanContext::init(uint32_t deviceIndex) {
     .ppEnabledExtensionNames = exts.data()};
   vkCheck(vkCreateInstance(&instanceCI, nullptr, &instance));
   volkLoadInstance(instance);
+
+  // Arm the debug-utils helpers exactly when the extension is live (it is
+  // added above only alongside the validation layer). Single gate for all
+  // setObjectName / debug-label calls across the codebase.
+  gDebugUtilsEnabled = enableValidation;
 
   if (enableValidation) {
     vkCheck(vkCreateDebugUtilsMessengerEXT(instance, &messengerCI, nullptr,
