@@ -401,10 +401,16 @@ int main(int argc, char* argv[]) {
                            sizeof(VkDeviceAddress),
                            &shaderDataBuffers[frameIndex].deviceAddress);
         vkCmdDrawIndexed(cb, static_cast<uint32_t>(indices.size()), 3, 0, 0, 0);
-
-        // ImGui draws into the same backbuffer scope, on top of the scene.
-        ui.draw(cb);
       });
+
+    fg.addPass("imgui",
+               {{backbuffer,
+                 FgUsage::ColorAttachment,
+                 {.load = VK_ATTACHMENT_LOAD_OP_LOAD}}},
+               [&](VkCommandBuffer cb) {
+                 // ImGui draws into the same backbuffer scope, on top of the scene.
+                 ui.draw(cb);
+               });
 
     fg.addPass("present", {{backbuffer, FgUsage::Present}}, {});
 
