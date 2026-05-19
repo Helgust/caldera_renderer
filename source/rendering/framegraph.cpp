@@ -2,6 +2,7 @@
 
 #include <array>
 
+#include "core/debugUtils.h"
 #include "core/vulkanContext.h"
 
 namespace caldera {
@@ -71,6 +72,8 @@ FgResource FrameGraph::importImage(const char* name, VkImage handle,
   r.state = {};  // swapchain image is effectively UNDEFINED after acquire
   r.owned = false;
   resources_.push_back(std::move(r));
+  setObjectName(ctx_.device, (uint64_t)handle, VK_OBJECT_TYPE_IMAGE, name);
+  setObjectName(ctx_.device, (uint64_t)view, VK_OBJECT_TYPE_IMAGE_VIEW, name);
   return static_cast<FgResource>(resources_.size() - 1);
 }
 
@@ -83,6 +86,10 @@ FgResource FrameGraph::createImage(const FgResourceDesc& desc) {
   r.state = {};
   r.owned = true;
   resources_.push_back(std::move(r));
+  setObjectName(ctx_.device, (uint64_t)r.image.handle, VK_OBJECT_TYPE_IMAGE,
+                desc.name);
+  setObjectName(ctx_.device, (uint64_t)r.image.view, VK_OBJECT_TYPE_IMAGE_VIEW,
+                desc.name);
   return static_cast<FgResource>(resources_.size() - 1);
 }
 
@@ -156,6 +163,7 @@ void FrameGraph::beginRendering(VkCommandBuffer cb, const FgPass& pass,
 
 void FrameGraph::execute(VkCommandBuffer cb) {
   for (const FgPass& pass : passes_) {
+    DebugLabelScope _label(cb, pass.name);
     // 1. Transition each accessed resource from its last-known state.
     for (const FgAccess& a : pass.accesses) {
       Resource& r = resources_[a.resource];

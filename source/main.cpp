@@ -15,6 +15,7 @@
 #include <string_view>
 
 #include "core/commandManager.h"
+#include "core/debugUtils.h"
 #include "core/swapchain.h"
 #include "core/syncObjects.h"
 #include "core/vulkanContext.h"
@@ -166,7 +167,10 @@ int main(int argc, char* argv[]) {
     ctx.allocator, ctx.device, depthFormat,
     {static_cast<uint32_t>(windowSize.x), static_cast<uint32_t>(windowSize.y)},
     VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
-
+  setObjectName(ctx.device, (uint64_t)depthImage.handle, VK_OBJECT_TYPE_IMAGE,
+                "depth");
+  setObjectName(ctx.device, (uint64_t)depthImage.view,
+                VK_OBJECT_TYPE_IMAGE_VIEW, "depth");
   // --- Scene ---
   SceneLoader sceneLoader;
   Scene scene = sceneLoader.load(scenePath);
@@ -179,6 +183,10 @@ int main(int argc, char* argv[]) {
   Buffer geometryBuffer = Buffer::createHostVisible(
     ctx.allocator, vBufSize + iBufSize,
     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+
+  setObjectName(ctx.device, (uint64_t)geometryBuffer.handle,
+                VK_OBJECT_TYPE_BUFFER, "geometry");
+
   geometryBuffer.upload(vertices.data(), vBufSize);
   memcpy(static_cast<char*>(geometryBuffer.mapped()) + vBufSize, indices.data(),
          iBufSize);
@@ -196,10 +204,13 @@ int main(int argc, char* argv[]) {
 
   // --- Shader data buffers (per frame, BDA) ---
   std::array<Buffer, kFramesInFlight> shaderDataBuffers;
-  for (auto& buf : shaderDataBuffers) {
-    buf = Buffer::createHostVisible(ctx.allocator, sizeof(ShaderData),
-                                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-                                    ctx.device);
+  for (size_t i = 0; i < shaderDataBuffers.size(); ++i) {
+    shaderDataBuffers[i] = Buffer::createHostVisible(
+      ctx.allocator, sizeof(ShaderData),
+      VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, ctx.device);
+    std::string n = "shaderData[" + std::to_string(i) + "]";
+    setObjectName(ctx.device, (uint64_t)shaderDataBuffers[i].handle,
+                  VK_OBJECT_TYPE_BUFFER, n.c_str());
   }
 
   // --- Descriptors ---
