@@ -377,7 +377,9 @@ int main(int argc, char* argv[]) {
     fg.addPass(
       "forward",
       {{backbuffer, FgUsage::ColorAttachment},
-       {depth, FgUsage::DepthAttachment}},
+       {depth,
+        FgUsage::DepthAttachment,
+        {.clearValue{.depthStencil{1.0f, 0}}}}},
       [&](VkCommandBuffer cb) {
         VkViewport vp{.width = static_cast<float>(windowSize.x),
                       .height = static_cast<float>(windowSize.y),

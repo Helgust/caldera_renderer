@@ -86,8 +86,7 @@ FgResource FrameGraph::createImage(const FgResourceDesc& desc) {
   return static_cast<FgResource>(resources_.size() - 1);
 }
 
-void FrameGraph::addPass(const char* name,
-                         std::vector<std::pair<FgResource, FgUsage>> accesses,
+void FrameGraph::addPass(const char* name, std::vector<FgAccess> accesses,
                          std::function<void(VkCommandBuffer)> execute) {
   passes_.push_back({.name = name,
                      .accesses = std::move(accesses),
@@ -102,28 +101,41 @@ void FrameGraph::beginRendering(VkCommandBuffer cb, const FgPass& pass,
   bool hasDepth{false};
   VkExtent2D area{};
 
-  for (const auto& [res, usage] : pass.accesses) {
-    const Resource& r = resources_[res];
-    if (usage == FgUsage::ColorAttachment) {
-      colors[colorCount++] = {
-        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        .imageView = r.image.view,
-        .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue{.color{{0.0f, 0.0f, 0.0f, 1.0f}}}};
+  for (const FgAccess& a : pass.accesses) {
+    Resource& r = resources_[a.resource];
+    if (a.usage != FgUsage::ColorAttachment &&
+        a.usage != FgUsage::DepthAttachment)
+      continue;
+
+    // Honour the caller's requested load/store, except: LOAD-ing a
+    // resource nothing has written yet is undefined, so the first write
+    // is forced to CLEAR regardless of what the pass asked for.
+    VkAttachmentLoadOp loadOp = a.op.load;
+    if (!r.written && loadOp == VK_ATTACHMENT_LOAD_OP_LOAD)
+      loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+
+    const VkRenderingAttachmentInfo att{
+      .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+      .imageView = r.image.view,
+      .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+      .loadOp = loadOp,
+      .storeOp = a.op.store,
+      .clearValue = a.op.clearValue};
+
+    if (a.usage == FgUsage::ColorAttachment) {
+      colors[colorCount++] = att;
       area = r.desc.extent;
-    } else if (usage == FgUsage::DepthAttachment) {
-      depth = {.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-               .imageView = r.image.view,
-               .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-               .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-               .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-               .clearValue{.depthStencil = {1.0f, 0}}};
+    } else {
+      depth = att;
       hasDepth = true;
       if (colorCount == 0)
         area = r.desc.extent;
     }
+
+    // A STORE makes the contents valid for a later LOAD; DONT_CARE
+    // leaves them undefined, so don't promise LOAD will work.
+    if (a.op.store == VK_ATTACHMENT_STORE_OP_STORE)
+      r.written = true;
   }
 
   if (colorCount == 0 && !hasDepth) {
@@ -145,9 +157,9 @@ void FrameGraph::beginRendering(VkCommandBuffer cb, const FgPass& pass,
 void FrameGraph::execute(VkCommandBuffer cb) {
   for (const FgPass& pass : passes_) {
     // 1. Transition each accessed resource from its last-known state.
-    for (const auto& [res, usage] : pass.accesses) {
-      Resource& r = resources_[res];
-      const FgResourceState want = requiredState(usage);
+    for (const FgAccess& a : pass.accesses) {
+      Resource& r = resources_[a.resource];
+      const FgResourceState want = requiredState(a.usage);
       const FgResourceState cur = r.state;
       r.image.transitionLayout(cb, cur.layout, want.layout, cur.stage,
                                cur.access, want.stage, want.access,

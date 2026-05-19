@@ -3,7 +3,6 @@
 #include <volk/volk.h>
 #include <cstdint>
 #include <functional>
-#include <utility>
 #include <vector>
 
 #include "resources/image.h"
@@ -21,6 +20,24 @@ enum class FgUsage {
   Present       // swapchain → PRESENT_SRC
 };
 
+// Per-access load/store intent. Only meaningful when the access is an
+// attachment (Color/Depth); ignored for SampledRead/Present. The graph
+// overrides `load` to CLEAR on a resource's first-ever write, since
+// LOAD-ing never-written contents is undefined.
+struct FgAttachmentOp {
+  VkAttachmentLoadOp load = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  VkAttachmentStoreOp store = VK_ATTACHMENT_STORE_OP_STORE;
+  VkClearValue clearValue{.color{{0.0f, 0.0f, 0.0f, 1.0f}}};
+};
+
+// One resource touched by a pass, plus how the pass uses it. `op` is only
+// read for attachment usages.
+struct FgAccess {
+  FgResource resource;
+  FgUsage usage;
+  FgAttachmentOp op{};
+};
+
 struct FgResourceDesc {
   const char* name;
   VkFormat format;
@@ -32,7 +49,7 @@ struct FgResourceDesc {
 
 struct FgPass {
   const char* name;
-  std::vector<std::pair<FgResource, FgUsage>> accesses;
+  std::vector<FgAccess> accesses;
   std::function<void(VkCommandBuffer)> execute;  // record draws only
 };
 
@@ -64,8 +81,7 @@ class FrameGraph {
   // Transient image. Allocated immediately, destroyed by reset()/dtor.
   FgResource createImage(const FgResourceDesc& desc);
 
-  void addPass(const char* name,
-               std::vector<std::pair<FgResource, FgUsage>> accesses,
+  void addPass(const char* name, std::vector<FgAccess> accesses,
                std::function<void(VkCommandBuffer)> execute);
 
   void execute(VkCommandBuffer cb);
@@ -81,7 +97,8 @@ class FrameGraph {
     FgResourceDesc desc;
     Image image;
     FgResourceState state;
-    bool owned;  // true = graph allocated, must destroy
+    bool owned;           // true = graph allocated, must destroy
+    bool written{false};  // any pass has stored to it → LOAD is now valid
   };
 
   void beginRendering(VkCommandBuffer cb, const FgPass& pass, bool& outBegan);
