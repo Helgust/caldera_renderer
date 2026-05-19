@@ -75,6 +75,8 @@ set(IMGUI_SRC
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
 )
 
 # ----------------------------------
@@ -88,6 +90,10 @@ add_executable(${NAME}
 
 target_compile_definitions(${NAME} PRIVATE
     VK_NO_PROTOTYPES
+    # Make the ImGui Vulkan backend resolve entrypoints through volk instead
+    # of linking Vulkan prototypes (the rest of the engine uses VK_NO_PROTOTYPES).
+    IMGUI_IMPL_VULKAN_USE_VOLK
+    IMGUI_IMPL_VULKAN_VOLK_FILENAME=<volk/volk.h>
     ASSET_PATH="${CMAKE_SOURCE_DIR}/assets/"
     SHADER_PATH="${CMAKE_SOURCE_DIR}/shaders/"
 )
@@ -102,6 +108,7 @@ target_include_directories(${NAME} PRIVATE
     source/                        # lets includes like "core/vulkanContext.h" resolve
     ${tinygltf_SOURCE_DIR}         # for tiny_gltf.h in sceneLoader.cpp
     ${imgui_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}/backends
     $ENV{VULKAN_SDK}/Include       # for volk, vma, slang headers
 )
 

@@ -24,6 +24,9 @@
 #include "resources/buffer.h"
 #include "resources/image.h"
 #include "scene/sceneLoader.h"
+#include "ui/imguiLayer.h"
+
+#include <imgui.h>
 
 using namespace caldera;
 
@@ -299,6 +302,12 @@ int main(int argc, char* argv[]) {
                           .setPipelineLayout(pipelineLayout)
                           .build(ctx.device);
 
+  // --- ImGui ---
+  ImGuiLayer ui;
+  ui.init(ctx, window, ctx.graphicsQueue, ctx.graphicsFamily, swapchain.format,
+          static_cast<uint32_t>(swapchain.images.size()),
+          static_cast<uint32_t>(swapchain.images.size()));
+
   // --- State ---
   ShaderData shaderData{};
   glm::vec3 camPos{0.0f, 0.0f, -6.0f};
@@ -333,6 +342,18 @@ int main(int argc, char* argv[]) {
                             glm::mat4_cast(glm::quat(objectRotations[i]));
     }
     shaderDataBuffers[frameIndex].upload(&shaderData, sizeof(ShaderData));
+
+    // --- Build UI ---
+    ui.beginFrame();
+    ImGui::Begin("Caldera");
+    ImGui::Text("%.1f FPS (%.2f ms)", ImGui::GetIO().Framerate,
+                1000.0f / ImGui::GetIO().Framerate);
+    int selected = static_cast<int>(shaderData.selected);
+    if (ImGui::SliderInt("Selected mesh", &selected, 0, 2))
+      shaderData.selected = static_cast<uint32_t>(selected);
+    ImGui::SliderFloat("Camera Z", &camPos.z, -16.0f, -1.0f);
+    ImGui::DragFloat3("Light pos", &shaderData.lightPos.x, 0.1f);
+    ImGui::End();
 
     // Record
     VkCommandBuffer cb = cmdManager.get(frameIndex);
@@ -378,6 +399,9 @@ int main(int argc, char* argv[]) {
                            sizeof(VkDeviceAddress),
                            &shaderDataBuffers[frameIndex].deviceAddress);
         vkCmdDrawIndexed(cb, static_cast<uint32_t>(indices.size()), 3, 0, 0, 0);
+
+        // ImGui draws into the same backbuffer scope, on top of the scene.
+        ui.draw(cb);
       });
 
     fg.addPass("present", {{backbuffer, FgUsage::Present}}, {});
@@ -419,10 +443,15 @@ int main(int argc, char* argv[]) {
     float elapsedTime = (SDL_GetTicks() - lastTime) / 1000.0f;
     lastTime = SDL_GetTicks();
     for (SDL_Event event; SDL_PollEvent(&event);) {
+      ui.processEvent(event);
       if (event.type == SDL_EVENT_QUIT) {
         quit = true;
         break;
       }
+      if (ui.wantCaptureMouse() && (event.type == SDL_EVENT_MOUSE_MOTION ||
+                                    event.type == SDL_EVENT_MOUSE_WHEEL ||
+                                    event.type == SDL_EVENT_MOUSE_BUTTON_DOWN))
+        continue;  // ImGui is using the cursor; don't move the camera
       if (event.type == SDL_EVENT_MOUSE_MOTION &&
           event.button.button == SDL_BUTTON_LEFT) {
         objectRotations[shaderData.selected].x -=
@@ -461,6 +490,8 @@ int main(int argc, char* argv[]) {
 
   // --- Teardown ---
   vkCheck(vkDeviceWaitIdle(ctx.device));
+
+  ui.destroy(ctx);
 
   for (auto& buf : shaderDataBuffers)
     buf.destroy(ctx.allocator);
