@@ -47,7 +47,7 @@ Estimated timeline: 2–3 months.
 ## Core Vulkan Setup
 
 * [x] Instance creation
-* [ ] Validation layers (CLR — Step 1.1)
+* [x] Validation layers (CLR — Step 1.1; `VK_LAYER_KHRONOS_validation` + debug messenger, gated on `!NDEBUG`)
 * [x] Physical device selection
 * [x] Logical device creation (Vulkan 1.2/1.3 feature chains)
 * [x] Queue management (graphics queue family selection)
@@ -83,7 +83,7 @@ Estimated timeline: 2–3 months.
 ## Scene Rendering
 
 * [x] Mesh loading (GLTF via tinygltf, vertex dedup)
-* [ ] Camera system (CLR — currently fixed matrices in main.cpp)
+* [ ] Camera system (CLR — still fixed perspective + translate in main.cpp; only Z slider exposed via ImGui)
 * [ ] Basic scene graph (minimal)
 * [x] Depth buffer
 
@@ -94,10 +94,10 @@ Estimated timeline: 2–3 months.
 
 ## Tooling & Debugging (added per plan)
 
-* [ ] Debug labels / object names (CLR — Step 1.2)
-* [ ] GPU timestamp queries (CLR — Step 1.3)
-* [ ] ImGui overlay integration (CLR — Step 1.4; compiled, not wired)
-* [ ] Synchronization audit & tightening (CLR — Step 1.5)
+* [x] Debug labels / object names (CLR — Step 1.2; `debugUtils.h` + scoped labels around passes)
+* [x] GPU timestamp queries (CLR — Step 1.3; `core/gpuTimer.h`, per-pass timing surfaced in Profiler window)
+* [x] ImGui overlay integration (CLR — Step 1.4; live FPS, GPU timings, scene controls)
+* [ ] Synchronization audit & tightening (CLR — Step 1.5; mostly superseded by framegraph auto-barriers — re-scope to: audit FG barrier derivation + present submit waitStage)
 
 ---
 
@@ -122,10 +122,10 @@ Estimated timeline: 3–4 months.
 * [ ] Descriptor allocator + layout builder (CLR — Step 2.2)
 * [ ] Material system (CLR — Step 2.3)
 * [ ] Shader reflection (CLR — Step 2.4, optional)
-* [ ] Render graph: data structures (CLR — Step 2.5a)
-* [ ] Render graph: resource/dependency tracking (CLR — Step 2.5b)
-* [ ] Render graph: automatic barrier generation (CLR — Step 2.5c)
-* [ ] Render graph: transient resource aliasing (CLR — Step 2.5d)
+* [x] Render graph: data structures (CLR — Step 2.5a; passes, resource handles, per-attachment load/store ops)
+* [~] Render graph: resource/dependency tracking (CLR — Step 2.5b; runs in declaration order with last-state tracking — no adjacency list / topo sort yet)
+* [x] Render graph: automatic barrier generation (CLR — Step 2.5c; `VkImageMemoryBarrier2` derived from prior `FgResourceState`)
+* [ ] Render graph: transient resource aliasing (CLR — Step 2.5d; transient images allocated but no lifetime overlap reuse)
 
 ## Lighting Improvements
 
@@ -165,10 +165,10 @@ Estimated timeline: 3–4 months.
 
 ## Performance
 
-* [ ] GPU timestamp queries
-* [ ] CPU/GPU profiling
-* [ ] Frame time breakdown
-* [ ] Pipeline statistics
+* [x] GPU timestamp queries *(landed in Phase 1; listed here for completeness)*
+* [ ] CPU/GPU profiling (Tracy or similar — scoped CPU zones, GPU context)
+* [ ] Frame time breakdown (rolling history graph in ImGui)
+* [ ] Pipeline statistics (`VK_QUERY_TYPE_PIPELINE_STATISTICS`)
 
 ## Async Compute (optional)
 
