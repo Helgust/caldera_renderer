@@ -25,6 +25,20 @@ Active near-term backlog. Full per-step detail is in the Notion board
 - [ ] **2.5b Render graph: real dependency tracking** — replace declaration-order execution with adjacency list + topological sort (prerequisite for reordering / async compute)
 - [x] **2.5c Render graph: barrier generation** — auto `VkImageMemoryBarrier2` from `FgResourceState`
 - [ ] **2.5d Render graph: transient resources** — lifetime tracking + memory aliasing across non-overlapping passes
+- [ ] **2.6a KTX2 loader** — pull in libktx, replace stb-via-tinygltf path; query `vkGetPhysicalDeviceFormatProperties` for BC7/BC5; upload full mip chain in one `vkCmdCopyBufferToImage`
+- [ ] **2.6b Asset bake pipeline** — CMake custom target running `toktx`/`ktx create` over a manifest of inputs; commit `.ktx2` to repo (reviewers shouldn't need KTX-Software on PATH to build)
+- [ ] **2.6c Mip generation strategy** — decide: offline (`toktx --genmipmap`) vs. GPU blit chain at load; document the choice. *Recommend offline for first pass.*
+
+> Open questions for 2.6 (decide before starting):
+> - Keep glTF `images[]` array, or re-export with `KHR_texture_basisu`? *(Lean: switch — proper modern path)*
+> - Do **2.2** (descriptor allocator) **first** so texture loading touches the new allocator, not the hardcoded pool
+
+## Code Organization — incremental refactors
+
+- [ ] **R.1 Extract `recordFrame(...)`** — pull the per-frame body out of `main.cpp` into a free function (no class). Reversible; just a readability win.
+- [ ] **R.2 Move `uploadTexture` to `resources/`** — already a free function in `main.cpp`; relocate into `resources/image.cpp` (or new `resources/textureUpload.cpp`). Strict win, no design decisions.
+- [ ] *(deferred)* `App`/`Renderer` class — design after 2.3 lands so it reflects real shape
+- [ ] *(deferred)* `input/` module — extract together with 1.6 Camera
 
 ## Later — Stage 3: Modern Rendering
 

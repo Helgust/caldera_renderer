@@ -127,6 +127,26 @@ Estimated timeline: 3–4 months.
 * [x] Render graph: automatic barrier generation (CLR — Step 2.5c; `VkImageMemoryBarrier2` derived from prior `FgResourceState`)
 * [ ] Render graph: transient resource aliasing (CLR — Step 2.5d; transient images allocated but no lifetime overlap reuse)
 
+## Texture Pipeline
+
+Replace PNG-via-stb + runtime RGBA8 with KTX2 + block-compressed formats.
+Prerequisite for IBL (cubemaps + prefiltered mip chains).
+
+* [ ] KTX2 loader via libktx (CLR — Step 2.6a; format negotiation, multi-mip upload, BC7/BC5/BC1 support)
+* [ ] Offline asset bake pipeline (CLR — Step 2.6b; CMake target running `toktx` over a manifest, `.ktx2` committed to repo)
+* [ ] Mip generation strategy (CLR — Step 2.6c; pick offline `toktx --genmipmap` vs. GPU `vkCmdBlitImage` chain, document why)
+* [ ] *(deferred)* Basis Universal supercompression — only revisit if shipping cross-platform matters
+
+## Code Organization (incremental)
+
+Small, reversible refactors that emerge naturally from the work above —
+not standalone milestones. Listed here so they don't get lost.
+
+* [ ] Extract `recordFrame(...)` free function from `main.cpp` (frame body → its own function, no class yet)
+* [ ] Relocate `uploadTexture` from `main.cpp` into `resources/` (purely a resource-creation helper)
+* [ ] *(deferred until after 2.3)* `App` / `Renderer` class owning subsystems — design against the real shape, not today's
+* [ ] *(deferred until after 1.6)* `input/` module — extract once Camera exists, move together
+
 ## Lighting Improvements
 
 * [ ] Cascaded shadow maps
