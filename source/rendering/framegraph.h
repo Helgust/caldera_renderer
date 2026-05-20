@@ -10,6 +10,7 @@
 namespace caldera {
 
 struct VulkanContext;
+class GpuTimer;
 
 using FgResource = uint32_t;  // index into FrameGraph::resources_
 
@@ -84,7 +85,7 @@ class FrameGraph {
   void addPass(const char* name, std::vector<FgAccess> accesses,
                std::function<void(VkCommandBuffer)> execute);
 
-  void execute(VkCommandBuffer cb);
+  void execute(VkCommandBuffer cb, GpuTimer* timer = nullptr);
 
   // Frees graph-owned images and clears passes. Call before rebuilding
   // (e.g. swapchain resize) or destruction.

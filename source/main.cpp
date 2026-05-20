@@ -16,6 +16,7 @@
 
 #include "core/commandManager.h"
 #include "core/debugUtils.h"
+#include "core/gpuTimer.h"
 #include "core/swapchain.h"
 #include "core/syncObjects.h"
 #include "core/vulkanContext.h"
@@ -313,6 +314,11 @@ int main(int argc, char* argv[]) {
                           .setPipelineLayout(pipelineLayout)
                           .build(ctx.device);
 
+  // --- GPU profiler ---
+  constexpr uint32_t kMaxPassesPerFrame{16};
+  GpuTimer gpuTimer;
+  gpuTimer.init(ctx, kFramesInFlight, kMaxPassesPerFrame);
+
   // --- ImGui ---
   ImGuiLayer ui;
   ui.init(ctx, window, ctx.graphicsQueue, ctx.graphicsFamily, swapchain.format,
@@ -366,6 +372,19 @@ int main(int argc, char* argv[]) {
     ImGui::DragFloat3("Light pos", &shaderData.lightPos.x, 0.1f);
     ImGui::End();
 
+    ImGui::Begin("Profiler");
+    ImGui::Text("CPU");
+    ImGui::Text("  frame  %6.2f ms", 1000.0f / ImGui::GetIO().Framerate);
+    ImGui::Separator();
+    ImGui::Text("GPU");
+    float gpuTotal{0.0f};
+    for (const auto& r : gpuTimer.getLastResults()) {
+      ImGui::Text("  %-8s %6.3f ms", r.name.c_str(), r.ms);
+      gpuTotal += r.ms;
+    }
+    ImGui::Text("  %-8s %6.3f ms", "total", gpuTotal);
+    ImGui::End();
+
     // Record
     VkCommandBuffer cb = cmdManager.get(frameIndex);
     vkCheck(vkResetCommandBuffer(cb, 0));
@@ -373,6 +392,10 @@ int main(int argc, char* argv[]) {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
     vkCheck(vkBeginCommandBuffer(cb, &cbBI));
+
+    // Readback previous results for this slot + reset the pool range. Must
+    // happen before any vkCmdBeginRendering.
+    gpuTimer.beginFrame(cb, frameIndex);
 
     // Frame graph: declare resources + passes, let it insert barriers
     // and drive dynamic rendering. Swapchain image and depth are imported
@@ -425,7 +448,7 @@ int main(int argc, char* argv[]) {
 
     fg.addPass("present", {{backbuffer, FgUsage::Present}}, {});
 
-    fg.execute(cb);
+    fg.execute(cb, &gpuTimer);
     vkCheck(vkEndCommandBuffer(cb));
 
     // Submit
@@ -442,6 +465,7 @@ int main(int argc, char* argv[]) {
       .pSignalSemaphores = &sync.renderSemaphores[imageIndex]};
     vkCheck(vkQueueSubmit(ctx.graphicsQueue, 1, &submitInfo,
                           sync.frameFences[frameIndex]));
+    gpuTimer.endFrame();
     frameIndex = (frameIndex + 1) % kFramesInFlight;
 
     // Present
@@ -511,6 +535,7 @@ int main(int argc, char* argv[]) {
   vkCheck(vkDeviceWaitIdle(ctx.device));
 
   ui.destroy(ctx);
+  gpuTimer.destroy();
 
   for (auto& buf : shaderDataBuffers)
     buf.destroy(ctx.allocator);

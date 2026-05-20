@@ -3,6 +3,7 @@
 #include <array>
 
 #include "core/debugUtils.h"
+#include "core/gpuTimer.h"
 #include "core/vulkanContext.h"
 
 namespace caldera {
@@ -161,9 +162,12 @@ void FrameGraph::beginRendering(VkCommandBuffer cb, const FgPass& pass,
   outBegan = true;
 }
 
-void FrameGraph::execute(VkCommandBuffer cb) {
+void FrameGraph::execute(VkCommandBuffer cb, GpuTimer* timer) {
   for (const FgPass& pass : passes_) {
     DebugLabelScope _label(cb, pass.name);
+    if (timer)
+      timer->beginPass(cb, pass.name);
+
     // 1. Transition each accessed resource from its last-known state.
     for (const FgAccess& a : pass.accesses) {
       Resource& r = resources_[a.resource];
@@ -186,6 +190,9 @@ void FrameGraph::execute(VkCommandBuffer cb) {
     // 4. Close the render scope.
     if (began)
       vkCmdEndRendering(cb);
+
+    if (timer)
+      timer->endPass(cb);
   }
 }
 
