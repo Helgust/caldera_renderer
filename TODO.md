@@ -14,6 +14,8 @@ Active near-term backlog. Full per-step detail is in the Notion board
 
 - [ ] **1.5 Synchronization audit** — re-scoped: audit `FrameGraph` barrier derivation (`FgResourceState` transitions), confirm stage masks are tight, document the present submit's `waitDstStageMask`
 - [ ] **1.6 Camera system** — extract from `main.cpp` (currently fixed perspective + Z translate); add free-fly or arcball, separate view/proj from `ShaderData` upload path
+- [ ] **1.7 Tracy profiling** *(pulled forward from Phase 3)* — scoped CPU zones + GPU context; profile *before* GPU-driven work so wins are measurable
+- [ ] **1.8 Threading foundation** *(NEW — foundational, see Ultimate Roadmap Tier 0)* — establish contracts up front: per-thread command pools, pick a job system (Taskflow / enkiTS / own), hand each FrameGraph pass its own recording context. Parallel pass recording filled in incrementally; **single submit thread**.
 
 ## Next — Stage 2: Renderer Architecture
 

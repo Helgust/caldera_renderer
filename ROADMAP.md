@@ -242,6 +242,64 @@ These features are optional but valuable for demonstrating advanced knowledge.
 
 ---
 
+# Ultimate Roadmap (synthesized)
+
+A consolidated, scope-filtered roadmap derived from comparing three reference
+projects against this one:
+
+* *3D Graphics Rendering Cookbook, 2nd Ed.* (Packt) — breadth-first technique cookbook
+* *Mastering Graphics Programming with Vulkan* (Packt / Raptor engine) — the architectural spine
+* *NVIDIA Falcor* — idea quarry only; most of it (path tracer, DLSS/RTXDI/NRD) is an
+  explicit non-goal for a focused rendering sandbox
+
+**Direction decisions:** hybrid renderer (rasterization-first, RT for selected effects);
+animation/skinning is a bonus side-quest, off the critical path; multithreaded command
+recording is **foundational** (per-thread pools + job system established up front, parallel
+pass recording filled in incrementally — single submit thread).
+
+The bracketed tags map to the CLR steps / phases above; **NEW** marks additions that came
+out of the comparison.
+
+```
+Tier 0 — Foundation (current)
+  • Frame graph: real dep tracking + transient aliasing   [2.5b/d]
+  • Bindless descriptor table                              [4.1 ← pulled forward]
+  • Deletion queue + descriptor allocator                  [2.1, 2.2]
+  • Tracy CPU/GPU profiling                                [← pulled forward from P3]
+  • Per-thread command pools + job system + parallel       [NEW — foundational]
+    pass recording (single submit thread)
+
+Tier 1 — Surface shading
+  • Metallic-rough PBR + IBL                               [3.1, 3.2]
+  • HDR + tonemapping                                      [P2]
+  • KTX2 / BC textures                                     [2.6]
+
+Tier 2 — Shadows & lighting scale
+  • CSM + filtering                                        [P2]
+  • Clustered / Forward+ lighting                          [P3]
+  • Froxel volumetric fog                                  [NEW]
+
+Tier 3 — GPU-driven & temporal
+  • G-buffer → motion vectors → TAA  (RT prerequisite)     [TAA elevated]
+  • SSAO                                                   [P3]
+  • Compute cull + indirect draw                           [3.4]
+  • Mesh shaders / meshlets                                [4.4]
+
+Tier 4 — Hybrid ray tracing
+  • BLAS/TLAS layer (shared with GPU-driven instances)     [NEW]
+  • RT shadows → RT reflections                            [4.5]
+  • DDGI (RT diffuse GI)                                   [NEW — headline feature]
+
+Tier 5 — Polish & portfolio                                [Phase 4]
+
+Bonus (off critical path)
+  • glTF animation / skinning
+  • PBR extensions (clearcoat / sheen / transmission)
+  • OIT, VRS
+```
+
+---
+
 # Learning Resources
 
 The following resources guide the implementation strategy:
