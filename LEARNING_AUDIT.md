@@ -23,7 +23,7 @@ Status legend: 🔴 not started · 🟡 in progress · 🟢 understood & can exp
 
 | Status | Module | Notes / open questions |
 |---|---|---|
-| 🔴 | [core/vulkanContext](source/core/vulkanContext.cpp) | instance, physical/logical device, queues, VMA, feature enablement |
+| 🟢 | [core/vulkanContext](source/core/vulkanContext.cpp) | ✅ spine: `vkCreateInstance`→`vkCreateDevice`→`vmaCreateAllocator`. ✅ **features vs extensions** are different axes (features = capability toggles via `vk12`/`vk13`+`pEnabledFeatures`; extensions = API surface by name string, e.g. swapchain). ✅ features are negotiated **only at `vkCreateDevice`** — instance knows nothing about device caps; `vkEnumeratePhysicalDevices` does **not** filter (it's `ls`, not `find`); `assert` only guards the array index. ✅ **no device suitability check** → blindly takes `devices[0]`; if it lacks a feature, `vkCreateDevice`→`VK_ERROR_FEATURE_NOT_PRESENT`→`vkCheck` prints to stderr + `exit()` = hard crash with extra steps (app vanishes, no window). Safe *only* because dev box has one capable discrete GPU. ✅ surface/swapchain live **outside** by responsibility **and** lifetime (device is created once & immutable; swapchain rebuilds on resize; surface needs a third-party-windowed OS handle). ✅ two-call enumerate idiom (count, then fill). Minor: `vkCheck` treats `VK_INCOMPLETE` as fatal (only tests `!=VK_SUCCESS`). |
 | 🔴 | [core/swapchain](source/core/swapchain.cpp) | surface caps, format/present-mode choice, recreate path |
 | 🟢 | [core/syncObjects](source/core/syncObjects.h) | ✅ semaphores = GPU↔GPU ordering, fences = GPU→CPU resource reuse; ✅ derived cold that `fence[frameIndex]` covers frame **N−2** not N−1 → an in-flight frame's writes to a *shared* resource aren't protected. Fix for the shared depth image is **ticketed: Notion 1.6** (per-frame depth ring). |
 | 🔴 | [core/commandManager](source/core/commandManager.h) | pools/buffers, frames-in-flight, `submitOneTime` |
@@ -49,6 +49,7 @@ Status legend: 🔴 not started · 🟡 in progress · 🟢 understood & can exp
 - **Multiple meshes / materials / draw batching.** `scene.mesh` is singular today.
 - **GPU-driven rendering.** Plain `vkCmdDrawIndexed` → indirect + culling later.
 - **Single depth image vs frames-in-flight** — ✅ understood (real WAW/WAR hazard; fence covers N−2, not N−1). Fix **ticketed: Notion 1.6** (per-frame depth ring).
+- **No physical-device suitability check.** `vulkanContext` takes `devices[0]` and requests a fat feature set with zero validation; a non-capable device 0 → `vkCreateDevice` fails → `exit()` deep in init (no window, cryptic stderr). Safe only on a single-capable-GPU dev box. Real fix: enumerate → score with `vkGetPhysicalDeviceFeatures2`/`Properties2`, pick the qualifying device, fail gracefully if none. Portability milestone, not a bug today.
 
 ## Reference
 
