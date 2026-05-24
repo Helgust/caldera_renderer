@@ -20,11 +20,11 @@ class GpuTimer {
     float ms;
   };
 
-  void init(VulkanContext& ctx, uint32_t framesInFlight,
-            uint32_t maxPassesPerFrame) {
+  void init(VulkanContext& ctx, uint32_t frames_in_flight,
+            uint32_t max_passes_per_frame) {
     device_ = ctx.device;
-    framesInFlight = framesInFlight;
-    maxPassesPerFrame = maxPassesPerFrame;
+    framesInFlight = frames_in_flight;
+    maxPassesPerFrame = max_passes_per_frame;
 
     VkPhysicalDeviceProperties2 props{
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
@@ -51,8 +51,8 @@ class GpuTimer {
 
   // Call once per frame, after the frame fence has been waited on (so the
   // pool slots for this frameIndex are safe to read and reset).
-  void beginFrame(VkCommandBuffer cb, uint32_t frameIndex) {
-    frameIndex = frameIndex;
+  void beginFrame(VkCommandBuffer cb, uint32_t frame_index) {
+    frameIndex = frame_index;
 
     // Readback any timestamps we wrote the last time this slot was used.
     if (submittedByFrame[frameIndex]) {
