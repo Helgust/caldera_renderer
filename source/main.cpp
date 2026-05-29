@@ -164,14 +164,19 @@ int main(int argc, char* argv[]) {
   const VkFormat depthFormat = findDepthFormat(ctx.physicalDevice);
   assert(depthFormat != VK_FORMAT_UNDEFINED);
 
-  Image depthImage = Image::create2D(
-    ctx.allocator, ctx.device, depthFormat,
-    {static_cast<uint32_t>(windowSize.x), static_cast<uint32_t>(windowSize.y)},
-    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
-  setObjectName(ctx.device, (uint64_t)depthImage.handle, VK_OBJECT_TYPE_IMAGE,
-                "depth");
-  setObjectName(ctx.device, (uint64_t)depthImage.view,
-                VK_OBJECT_TYPE_IMAGE_VIEW, "depth");
+  std::array<Image, kFramesInFlight> depthImages;
+  for (size_t i = 0; i < depthImages.size(); ++i) {
+    depthImages[i] = Image::create2D(
+      ctx.allocator, ctx.device, depthFormat,
+      {static_cast<uint32_t>(windowSize.x),
+       static_cast<uint32_t>(windowSize.y)},
+      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+    std::string depthName = "depth[" + std::to_string(i) + "]";
+    setObjectName(ctx.device, (uint64_t)depthImages[i].handle,
+                  VK_OBJECT_TYPE_IMAGE, depthName.c_str());
+    setObjectName(ctx.device, (uint64_t)depthImages[i].view,
+                  VK_OBJECT_TYPE_IMAGE_VIEW, depthName.c_str());
+  }
   // --- Scene ---
   SceneLoader sceneLoader;
   Scene scene = sceneLoader.load(scenePath);
@@ -404,9 +409,9 @@ int main(int argc, char* argv[]) {
     FgResource backbuffer = fg.importImage(
       "backbuffer", swapchain.images[imageIndex], swapchain.views[imageIndex],
       swapchain.format, swapchain.extent);
-    FgResource depth =
-      fg.importImage("depth", depthImage.handle, depthImage.view, depthFormat,
-                     swapchain.extent);
+    FgResource depth = fg.importImage("depth", depthImages[frameIndex].handle,
+                                      depthImages[frameIndex].view, depthFormat,
+                                      swapchain.extent);
 
     fg.addPass(
       "forward",
@@ -522,12 +527,15 @@ int main(int argc, char* argv[]) {
       updateSwapchain = false;
       vkCheck(vkDeviceWaitIdle(ctx.device));
       swapchain.recreate(ctx, surface, windowSize);
-      depthImage.destroy(ctx.device, ctx.allocator);
-      depthImage = Image::create2D(ctx.allocator, ctx.device, depthFormat,
-                                   {static_cast<uint32_t>(windowSize.x),
-                                    static_cast<uint32_t>(windowSize.y)},
-                                   VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                   VK_IMAGE_ASPECT_DEPTH_BIT);
+      for (int i = 0; i < depthImages.size(); i++) {
+        depthImages[i].destroy(ctx.device, ctx.allocator);
+        depthImages[i] =
+          Image::create2D(ctx.allocator, ctx.device, depthFormat,
+                          {static_cast<uint32_t>(windowSize.x),
+                           static_cast<uint32_t>(windowSize.y)},
+                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                          VK_IMAGE_ASPECT_DEPTH_BIT);
+      }
     }
   }
 
@@ -542,7 +550,9 @@ int main(int argc, char* argv[]) {
   geometryBuffer.destroy(ctx.allocator);
   for (auto& tex : textures)
     tex.destroy(ctx.device, ctx.allocator);
-  depthImage.destroy(ctx.device, ctx.allocator);
+  for (int i = 0; i < depthImages.size(); i++) {
+    depthImages[i].destroy(ctx.device, ctx.allocator);
+  }
   swapchain.destroy(ctx.device);
   vkDestroyDescriptorSetLayout(ctx.device, descriptorSetLayout, nullptr);
   vkDestroyDescriptorPool(ctx.device, descriptorPool, nullptr);
