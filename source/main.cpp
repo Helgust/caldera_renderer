@@ -334,19 +334,20 @@ int main(int argc, char* argv[]) {
   ShaderData shaderData{};
   glm::vec3 camPos{0.0f, 0.0f, -6.0f};
   glm::vec3 objectRotations[3]{};
-  uint32_t frameIndex{0};
-  uint32_t imageIndex{0};
+  uint32_t frameInFlightIndex{0};
+  uint32_t swapchainImageIndex{0};
   bool updateSwapchain{false};
   bool quit{false};
   uint64_t lastTime{SDL_GetTicks()};
 
   // --- Render loop ---
   while (!quit) {
-    sync.waitAndResetFence(ctx.device, frameIndex);
+    sync.waitAndResetFence(ctx.device, frameInFlightIndex);
 
-    VkResult acquireResult = vkAcquireNextImageKHR(
-      ctx.device, swapchain.handle, UINT64_MAX,
-      sync.presentSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex);
+    VkResult acquireResult =
+      vkAcquireNextImageKHR(ctx.device, swapchain.handle, UINT64_MAX,
+                            sync.presentSemaphores[frameInFlightIndex],
+                            VK_NULL_HANDLE, &swapchainImageIndex);
     if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
       updateSwapchain = true;
     } else {
@@ -363,7 +364,8 @@ int main(int argc, char* argv[]) {
       shaderData.model[i] = glm::translate(glm::mat4(1.0f), instancePos) *
                             glm::mat4_cast(glm::quat(objectRotations[i]));
     }
-    shaderDataBuffers[frameIndex].upload(&shaderData, sizeof(ShaderData));
+    shaderDataBuffers[frameInFlightIndex].upload(&shaderData,
+                                                 sizeof(ShaderData));
 
     // --- Build UI ---
     ui.beginFrame();
@@ -391,7 +393,7 @@ int main(int argc, char* argv[]) {
     ImGui::End();
 
     // Record
-    VkCommandBuffer cb = cmdManager.get(frameIndex);
+    VkCommandBuffer cb = cmdManager.get(frameInFlightIndex);
     vkCheck(vkResetCommandBuffer(cb, 0));
     VkCommandBufferBeginInfo cbBI{
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -400,18 +402,18 @@ int main(int argc, char* argv[]) {
 
     // Readback previous results for this slot + reset the pool range. Must
     // happen before any vkCmdBeginRendering.
-    gpuTimer.beginFrame(cb, frameIndex);
+    gpuTimer.beginFrame(cb, frameInFlightIndex);
 
     // Frame graph: declare resources + passes, let it insert barriers
     // and drive dynamic rendering. Swapchain image and depth are imported
     // (owned elsewhere), so no per-frame allocation happens here.
     FrameGraph fg(ctx);
     FgResource backbuffer = fg.importImage(
-      "backbuffer", swapchain.images[imageIndex], swapchain.views[imageIndex],
-      swapchain.format, swapchain.extent);
-    FgResource depth = fg.importImage("depth", depthImages[frameIndex].handle,
-                                      depthImages[frameIndex].view, depthFormat,
-                                      swapchain.extent);
+      "backbuffer", swapchain.images[swapchainImageIndex],
+      swapchain.views[swapchainImageIndex], swapchain.format, swapchain.extent);
+    FgResource depth = fg.importImage(
+      "depth", depthImages[frameInFlightIndex].handle,
+      depthImages[frameInFlightIndex].view, depthFormat, swapchain.extent);
 
     fg.addPass(
       "forward",
@@ -436,9 +438,10 @@ int main(int argc, char* argv[]) {
         vkCmdBindVertexBuffers(cb, 0, 1, &geometryBuffer.handle, &vOffset);
         vkCmdBindIndexBuffer(cb, geometryBuffer.handle, vBufSize,
                              VK_INDEX_TYPE_UINT16);
-        vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                           sizeof(VkDeviceAddress),
-                           &shaderDataBuffers[frameIndex].deviceAddress);
+        vkCmdPushConstants(
+          cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+          sizeof(VkDeviceAddress),
+          &shaderDataBuffers[frameInFlightIndex].deviceAddress);
         vkCmdDrawIndexed(cb, static_cast<uint32_t>(indices.size()), 3, 0, 0, 0);
       });
 
@@ -462,25 +465,25 @@ int main(int argc, char* argv[]) {
     VkSubmitInfo submitInfo{
       .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .waitSemaphoreCount = 1,
-      .pWaitSemaphores = &sync.presentSemaphores[frameIndex],
+      .pWaitSemaphores = &sync.presentSemaphores[frameInFlightIndex],
       .pWaitDstStageMask = &waitStage,
       .commandBufferCount = 1,
       .pCommandBuffers = &cb,
       .signalSemaphoreCount = 1,
-      .pSignalSemaphores = &sync.renderSemaphores[imageIndex]};
+      .pSignalSemaphores = &sync.renderSemaphores[swapchainImageIndex]};
     vkCheck(vkQueueSubmit(ctx.graphicsQueue, 1, &submitInfo,
-                          sync.frameFences[frameIndex]));
+                          sync.frameFences[frameInFlightIndex]));
     gpuTimer.endFrame();
-    frameIndex = (frameIndex + 1) % kFramesInFlight;
+    frameInFlightIndex = (frameInFlightIndex + 1) % kFramesInFlight;
 
     // Present
     VkPresentInfoKHR presentInfo{
       .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
       .waitSemaphoreCount = 1,
-      .pWaitSemaphores = &sync.renderSemaphores[imageIndex],
+      .pWaitSemaphores = &sync.renderSemaphores[swapchainImageIndex],
       .swapchainCount = 1,
       .pSwapchains = &swapchain.handle,
-      .pImageIndices = &imageIndex};
+      .pImageIndices = &swapchainImageIndex};
     VkResult presentResult = vkQueuePresentKHR(ctx.graphicsQueue, &presentInfo);
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR)
       updateSwapchain = true;
