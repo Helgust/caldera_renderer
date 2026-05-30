@@ -340,6 +340,20 @@ int main(int argc, char* argv[]) {
   bool quit{false};
   uint64_t lastTime{SDL_GetTicks()};
 
+  auto on_recreate = [&]() {
+    sdlCheck(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
+    vkCheck(vkDeviceWaitIdle(ctx.device));
+    swapchain.recreate(ctx, surface, windowSize);
+    for (int i = 0; i < depthImages.size(); i++) {
+      depthImages[i].destroy(ctx.device, ctx.allocator);
+      depthImages[i] = Image::create2D(
+        ctx.allocator, ctx.device, depthFormat,
+        {static_cast<uint32_t>(windowSize.x),
+         static_cast<uint32_t>(windowSize.y)},
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+    }
+  };
+
   // --- Render loop ---
   while (!quit) {
     sync.waitAndResetFence(ctx.device, frameInFlightIndex);
@@ -526,22 +540,8 @@ int main(int argc, char* argv[]) {
 
     // Swapchain recreate
     if (updateSwapchain) {
-      sdlCheck(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
       updateSwapchain = false;
-      // Must wait before the destroys below: the old swapchain/depth images may
-      // still be read by in-flight frames (GPU N-1/N-2). Destroying them while
-      // in use = use-after-free. Same hazard as the fence-covers-N-2 note (1.6).
-      vkCheck(vkDeviceWaitIdle(ctx.device));
-      swapchain.recreate(ctx, surface, windowSize);
-      for (int i = 0; i < depthImages.size(); i++) {
-        depthImages[i].destroy(ctx.device, ctx.allocator);
-        depthImages[i] =
-          Image::create2D(ctx.allocator, ctx.device, depthFormat,
-                          {static_cast<uint32_t>(windowSize.x),
-                           static_cast<uint32_t>(windowSize.y)},
-                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                          VK_IMAGE_ASPECT_DEPTH_BIT);
-      }
+      on_recreate();
     }
   }
 
