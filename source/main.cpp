@@ -528,6 +528,9 @@ int main(int argc, char* argv[]) {
     if (updateSwapchain) {
       sdlCheck(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
       updateSwapchain = false;
+      // Must wait before the destroys below: the old swapchain/depth images may
+      // still be read by in-flight frames (GPU N-1/N-2). Destroying them while
+      // in use = use-after-free. Same hazard as the fence-covers-N-2 note (1.6).
       vkCheck(vkDeviceWaitIdle(ctx.device));
       swapchain.recreate(ctx, surface, windowSize);
       for (int i = 0; i < depthImages.size(); i++) {
