@@ -8,14 +8,19 @@
       "type": "shell",
       "command": "clang-tidy",
       "args": [
-        { "value": "${file}", "quoting": "strong" },
+        {
+          "value": "${file}",
+          "quoting": "strong"
+        },
+        "--quiet",
         "-p",
         "build"
       ],
       "problemMatcher": "$gcc",
       "presentation": {
         "reveal": "always",
-        "panel": "dedicated"
+        "panel": "dedicated",
+        "clear": true
       }
     },
     {
@@ -24,7 +29,7 @@
       "command": "git push -u origin main",
       "problemMatcher": [],
       "presentation": {
-        "panel": "dedicated",
+        "panel": "dedicated"
       }
     },
     {
@@ -53,11 +58,16 @@
       "label": "Clang format current file",
       "type": "shell",
       "command": "clang-format",
-      "args":[
+      "args": [
         "-i",
-        { "value": "${file}", "quoting": "strong" }
+        {
+          "value": "${file}",
+          "quoting": "strong"
+        }
       ],
-      "options": {"cwd": "${workspaceFolder}"},
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "presentation": {
         "panel": "dedicated",
         "clear": true
@@ -96,6 +106,6 @@
       "options": {
         "cwd": "${workspaceFolder}"
       }
-    },
+    }
   ]
 }

@@ -120,7 +120,8 @@ Several defects are latent because *untested*, not because they don't exist:
 
 - Blind `devices[0]` selection with no suitability check
   ([vulkanContext.cpp](source/core/vulkanContext.cpp), Notion 1.9)
-- Hardcoded swapchain format + ignored surface caps
+- Hardcoded swapchain format + ignored surface caps — ✅ fixed (CLR-32 / 1.8;
+  surface-format query + extent clamp + min+1 image count)
   ([swapchain.cpp](source/core/swapchain.cpp), Notion 1.7, 1.8)
 - gpuTimer param-shadows-member (was fixed; Notion 1.13)
 - Slang null-module dereference on shader error
