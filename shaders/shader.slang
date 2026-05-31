@@ -52,5 +52,7 @@ float4 main(VSOutput input) {
     float3 specular = pow(max(dot(R, V), 0.0), 16.0) * 0.75;
     // Sample from texture
     float3 color = textures[NonUniformResourceIndex(input.InstanceIndex)].Sample(input.UV).rgb * input.Factor;
-    return float4(diffuse * color.rgb + specular, 1.0);
+    float4 result = float4(diffuse * color.rgb + specular, 1.0);
+
+    return pow(result, 1.0/2.2);
 }

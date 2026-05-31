@@ -1,11 +1,48 @@
 #include "core/swapchain.h"
 #include <cassert>
+#include <cstdint>
+#include <vector>
 
 namespace caldera {
 
 void Swapchain::init(VulkanContext& ctx, VkSurfaceKHR surface,
                      glm::ivec2 size) {
-  format = VK_FORMAT_B8G8R8A8_SRGB;
+  const std::vector<VkFormat> surfaceImageFormats = {
+    VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM,
+    VK_FORMAT_R8G8B8_UNORM};
+  const VkColorSpaceKHR surfaceColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+
+  std::vector<VkSurfaceFormatKHR> supportedFormats;
+  uint32_t supportedCount{0};
+
+  vkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(ctx.physicalDevice, surface,
+                                               &supportedCount, NULL));
+  supportedFormats.resize(supportedCount);
+  vkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(
+    ctx.physicalDevice, surface, &supportedCount, supportedFormats.data()));
+
+  bool formatFound = false;
+  const uint32_t surfaceFormatCount = surfaceImageFormats.size();
+
+  for (int i = 0; i < surfaceFormatCount; i++) {
+    for (int j = 0; j < supportedCount; j++) {
+      if (supportedFormats[j].format == surfaceImageFormats[i] &&
+          supportedFormats[j].colorSpace == surfaceColorSpace) {
+        format = supportedFormats[j].format;
+        formatFound = true;
+        break;
+      }
+    }
+
+    if (formatFound)
+      break;
+  }
+
+  // Default to the first format supported.
+  if (!formatFound) {
+    format = supportedFormats[0].format;
+    assert(false);
+  }
 
   VkSurfaceCapabilitiesKHR caps{};
   vkCheck(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx.physicalDevice, surface,
