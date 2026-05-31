@@ -16,8 +16,8 @@ struct VulkanContext;
 class ImGuiLayer {
  public:
   void init(VulkanContext& ctx, SDL_Window* window, VkQueue queue,
-            uint32_t queueFamily, VkFormat colorFormat, uint32_t minImageCount,
-            uint32_t imageCount);
+            uint32_t queue_family, VkFormat color_format,
+            uint32_t min_image_count, uint32_t image_count);
   void destroy(VulkanContext& ctx);
 
   // Feed an SDL event to ImGui. Returns true if ImGui wants to consume the

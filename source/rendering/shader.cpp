@@ -26,11 +26,11 @@ void SlangCompiler::init() {
 
 ShaderModule ShaderModule::loadSlang(VkDevice device, slang::ISession* session,
                                      const std::string& path,
-                                     const std::string& moduleName) {
+                                     const std::string& module_name) {
   ShaderModule sm{};
 
   Slang::ComPtr<slang::IModule> slangModule{session->loadModuleFromSource(
-    moduleName.c_str(), path.c_str(), nullptr, nullptr)};
+    module_name.c_str(), path.c_str(), nullptr, nullptr)};
 
   Slang::ComPtr<ISlangBlob> spirv;
   slangModule->getTargetCode(0, spirv.writeRef());

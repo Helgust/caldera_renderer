@@ -13,22 +13,22 @@ namespace caldera {
 // that used to live inline in the render loop.
 static FgResourceState requiredState(FgUsage u) {
   switch (u) {
-    case FgUsage::ColorAttachment:
+    case FgUsage::COLOR_ATTACHMENT:
       return {VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
               VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
               VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT |
                 VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT};
-    case FgUsage::DepthAttachment:
+    case FgUsage::DEPTH_ATTACHMENT:
       return {VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
               VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
                 VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
               VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
                 VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT};
-    case FgUsage::SampledRead:
+    case FgUsage::SAMPLED_READ:
       return {VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
               VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
               VK_ACCESS_2_SHADER_SAMPLED_READ_BIT};
-    case FgUsage::Present:
+    case FgUsage::PRESENT:
       return {VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
               VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
               VK_ACCESS_2_NONE};
@@ -102,7 +102,7 @@ void FrameGraph::addPass(const char* name, std::vector<FgAccess> accesses,
 }
 
 void FrameGraph::beginRendering(VkCommandBuffer cb, const FgPass& pass,
-                                bool& outBegan) {
+                                bool& out_began) {
   std::array<VkRenderingAttachmentInfo, 8> colors{};
   uint32_t colorCount{0};
   VkRenderingAttachmentInfo depth{};
@@ -111,8 +111,8 @@ void FrameGraph::beginRendering(VkCommandBuffer cb, const FgPass& pass,
 
   for (const FgAccess& a : pass.accesses) {
     Resource& r = resources_[a.resource];
-    if (a.usage != FgUsage::ColorAttachment &&
-        a.usage != FgUsage::DepthAttachment)
+    if (a.usage != FgUsage::COLOR_ATTACHMENT &&
+        a.usage != FgUsage::DEPTH_ATTACHMENT)
       continue;
 
     // Honour the caller's requested load/store, except: LOAD-ing a
@@ -130,7 +130,7 @@ void FrameGraph::beginRendering(VkCommandBuffer cb, const FgPass& pass,
       .storeOp = a.op.store,
       .clearValue = a.op.clearValue};
 
-    if (a.usage == FgUsage::ColorAttachment) {
+    if (a.usage == FgUsage::COLOR_ATTACHMENT) {
       colors[colorCount++] = att;
       area = r.desc.extent;
     } else {
@@ -147,7 +147,7 @@ void FrameGraph::beginRendering(VkCommandBuffer cb, const FgPass& pass,
   }
 
   if (colorCount == 0 && !hasDepth) {
-    outBegan = false;
+    out_began = false;
     return;  // e.g. a present-only pass — barrier work, no rendering
   }
 
@@ -159,7 +159,7 @@ void FrameGraph::beginRendering(VkCommandBuffer cb, const FgPass& pass,
     .pColorAttachments = colorCount ? colors.data() : nullptr,
     .pDepthAttachment = hasDepth ? &depth : nullptr};
   vkCmdBeginRendering(cb, &info);
-  outBegan = true;
+  out_began = true;
 }
 
 void FrameGraph::execute(VkCommandBuffer cb, GpuTimer* timer) {

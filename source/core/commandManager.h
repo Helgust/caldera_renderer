@@ -58,7 +58,7 @@ struct CommandManager {
     vkFreeCommandBuffers(ctx.device, pool, 1, &cb);
   }
 
-  VkCommandBuffer& get(uint32_t frameIndex) { return buffers[frameIndex]; }
+  VkCommandBuffer& get(uint32_t frame_index) { return buffers[frame_index]; }
 
   void destroy(VkDevice device) { vkDestroyCommandPool(device, pool, nullptr); }
 };

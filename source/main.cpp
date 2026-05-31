@@ -340,7 +340,7 @@ int main(int argc, char* argv[]) {
   bool quit{false};
   uint64_t lastTime{SDL_GetTicks()};
 
-  auto on_recreate = [&]() {
+  auto onRecreate = [&]() {
     sdlCheck(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
     vkCheck(vkDeviceWaitIdle(ctx.device));
     swapchain.recreate(ctx, surface, windowSize);
@@ -431,9 +431,9 @@ int main(int argc, char* argv[]) {
 
     fg.addPass(
       "forward",
-      {{backbuffer, FgUsage::ColorAttachment},
+      {{backbuffer, FgUsage::COLOR_ATTACHMENT},
        {depth,
-        FgUsage::DepthAttachment,
+        FgUsage::DEPTH_ATTACHMENT,
         {.clearValue{.depthStencil{1.0f, 0}}}}},
       [&](VkCommandBuffer cb) {
         VkViewport vp{.width = static_cast<float>(windowSize.x),
@@ -461,14 +461,14 @@ int main(int argc, char* argv[]) {
 
     fg.addPass("imgui",
                {{backbuffer,
-                 FgUsage::ColorAttachment,
+                 FgUsage::COLOR_ATTACHMENT,
                  {.load = VK_ATTACHMENT_LOAD_OP_LOAD}}},
                [&](VkCommandBuffer cb) {
                  // ImGui draws into the same backbuffer scope, on top of the scene.
                  ui.draw(cb);
                });
 
-    fg.addPass("present", {{backbuffer, FgUsage::Present}}, {});
+    fg.addPass("present", {{backbuffer, FgUsage::PRESENT}}, {});
 
     fg.execute(cb, &gpuTimer);
     vkCheck(vkEndCommandBuffer(cb));
@@ -541,7 +541,7 @@ int main(int argc, char* argv[]) {
     // Swapchain recreate
     if (updateSwapchain) {
       updateSwapchain = false;
-      on_recreate();
+      onRecreate();
     }
   }
 

@@ -9,16 +9,16 @@ namespace caldera {
 // different attachment formats and vertex input state.
 struct GraphicsPipelineBuilder {
   GraphicsPipelineBuilder& setShaderStages(VkShaderModule module,
-                                           const char* vertEntry = "main",
-                                           const char* fragEntry = "main");
+                                           const char* vert_entry = "main",
+                                           const char* frag_entry = "main");
 
   GraphicsPipelineBuilder& setVertexInput(
     const VkVertexInputBindingDescription& binding,
     const std::vector<VkVertexInputAttributeDescription>& attrs);
 
   GraphicsPipelineBuilder& setDepthStencil(
-    bool testEnable, bool writeEnable,
-    VkCompareOp compareOp = VK_COMPARE_OP_LESS_OR_EQUAL);
+    bool test_enable, bool write_enable,
+    VkCompareOp compare_op = VK_COMPARE_OP_LESS_OR_EQUAL);
 
   GraphicsPipelineBuilder& setColorAttachmentFormat(VkFormat format);
   GraphicsPipelineBuilder& setDepthAttachmentFormat(VkFormat format);

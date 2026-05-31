@@ -12,7 +12,7 @@ struct SyncObjects {
   std::array<VkSemaphore, FramesInFlight> presentSemaphores{};
   std::vector<VkSemaphore> renderSemaphores;  // one per swapchain image
 
-  void init(VulkanContext& ctx, uint32_t swapchainImageCount) {
+  void init(VulkanContext& ctx, uint32_t swapchain_image_count) {
     VkSemaphoreCreateInfo semCI{.sType =
                                   VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
     VkFenceCreateInfo fenceCI{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -24,16 +24,16 @@ struct SyncObjects {
         vkCreateSemaphore(ctx.device, &semCI, nullptr, &presentSemaphores[i]));
     }
 
-    renderSemaphores.resize(swapchainImageCount);
+    renderSemaphores.resize(swapchain_image_count);
     for (auto& sem : renderSemaphores) {
       vkCheck(vkCreateSemaphore(ctx.device, &semCI, nullptr, &sem));
     }
   }
 
-  void waitAndResetFence(VkDevice device, uint32_t frameIndex) {
-    vkCheck(vkWaitForFences(device, 1, &frameFences[frameIndex], VK_TRUE,
+  void waitAndResetFence(VkDevice device, uint32_t frame_index) {
+    vkCheck(vkWaitForFences(device, 1, &frameFences[frame_index], VK_TRUE,
                             UINT64_MAX));
-    vkCheck(vkResetFences(device, 1, &frameFences[frameIndex]));
+    vkCheck(vkResetFences(device, 1, &frameFences[frame_index]));
   }
 
   void destroy(VkDevice device) {

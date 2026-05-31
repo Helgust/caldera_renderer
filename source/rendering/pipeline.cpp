@@ -4,16 +4,16 @@
 namespace caldera {
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::setShaderStages(
-  VkShaderModule module, const char* vertEntry, const char* fragEntry) {
+  VkShaderModule module, const char* vert_entry, const char* frag_entry) {
   shaderStages_ = {
     {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
      .stage = VK_SHADER_STAGE_VERTEX_BIT,
      .module = module,
-     .pName = vertEntry},
+     .pName = vert_entry},
     {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
      .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
      .module = module,
-     .pName = fragEntry}};
+     .pName = frag_entry}};
   return *this;
 }
 
@@ -27,10 +27,10 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::setVertexInput(
 }
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::setDepthStencil(
-  bool testEnable, bool writeEnable, VkCompareOp compareOp) {
-  depthTestEnable_ = testEnable;
-  depthWriteEnable_ = writeEnable;
-  depthCompareOp_ = compareOp;
+  bool test_enable, bool write_enable, VkCompareOp compare_op) {
+  depthTestEnable_ = test_enable;
+  depthWriteEnable_ = write_enable;
+  depthCompareOp_ = compare_op;
   return *this;
 }
 

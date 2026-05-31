@@ -9,8 +9,8 @@
 namespace caldera {
 
 void ImGuiLayer::init(VulkanContext& ctx, SDL_Window* window, VkQueue queue,
-                      uint32_t queueFamily, VkFormat colorFormat,
-                      uint32_t minImageCount, uint32_t imageCount) {
+                      uint32_t queue_family, VkFormat color_format,
+                      uint32_t min_image_count, uint32_t image_count) {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGui::StyleColorsDark();
@@ -23,17 +23,17 @@ void ImGuiLayer::init(VulkanContext& ctx, SDL_Window* window, VkQueue queue,
   VkPipelineRenderingCreateInfo renderingCI{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
     .colorAttachmentCount = 1,
-    .pColorAttachmentFormats = &colorFormat};
+    .pColorAttachmentFormats = &color_format};
 
   ImGui_ImplVulkan_InitInfo info{};
   info.ApiVersion = VK_API_VERSION_1_3;
   info.Instance = ctx.instance;
   info.PhysicalDevice = ctx.physicalDevice;
   info.Device = ctx.device;
-  info.QueueFamily = queueFamily;
+  info.QueueFamily = queue_family;
   info.Queue = queue;
-  info.MinImageCount = minImageCount;
-  info.ImageCount = imageCount;
+  info.MinImageCount = min_image_count;
+  info.ImageCount = image_count;
   // Let the backend create + own its descriptor pool (size > 0).
   info.DescriptorPoolSize = 16;
   info.UseDynamicRendering = true;

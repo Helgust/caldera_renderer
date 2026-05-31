@@ -15,14 +15,14 @@ class GpuTimer;
 using FgResource = uint32_t;  // index into FrameGraph::resources_
 
 enum class FgUsage {
-  ColorAttachment,
-  DepthAttachment,
-  SampledRead,  // shader read (e.g. read a prior pass output)
-  Present       // swapchain → PRESENT_SRC
+  COLOR_ATTACHMENT,
+  DEPTH_ATTACHMENT,
+  SAMPLED_READ,  // shader read (e.g. read a prior pass output)
+  PRESENT        // swapchain → PRESENT_SRC
 };
 
 // Per-access load/store intent. Only meaningful when the access is an
-// attachment (Color/Depth); ignored for SampledRead/Present. The graph
+// attachment (Color/Depth); ignored for SAMPLED_READ/PRESENT. The graph
 // overrides `load` to CLEAR on a resource's first-ever write, since
 // LOAD-ing never-written contents is undefined.
 struct FgAttachmentOp {
@@ -102,7 +102,7 @@ class FrameGraph {
     bool written{false};  // any pass has stored to it → LOAD is now valid
   };
 
-  void beginRendering(VkCommandBuffer cb, const FgPass& pass, bool& outBegan);
+  void beginRendering(VkCommandBuffer cb, const FgPass& pass, bool& out_began);
 
   VulkanContext& ctx_;
   std::vector<Resource> resources_;

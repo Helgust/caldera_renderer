@@ -39,21 +39,21 @@ Image Image::create2D(VmaAllocator allocator, VkDevice device, VkFormat format,
   return img;
 }
 
-void Image::transitionLayout(VkCommandBuffer cb, VkImageLayout oldLayout,
-                             VkImageLayout newLayout,
-                             VkPipelineStageFlags2 srcStage,
-                             VkAccessFlags2 srcAccess,
-                             VkPipelineStageFlags2 dstStage,
-                             VkAccessFlags2 dstAccess,
+void Image::transitionLayout(VkCommandBuffer cb, VkImageLayout old_layout,
+                             VkImageLayout new_layout,
+                             VkPipelineStageFlags2 src_stage,
+                             VkAccessFlags2 src_access,
+                             VkPipelineStageFlags2 dst_stage,
+                             VkAccessFlags2 dst_access,
                              VkImageAspectFlags aspect) {
   VkImageMemoryBarrier2 barrier{
     .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-    .srcStageMask = srcStage,
-    .srcAccessMask = srcAccess,
-    .dstStageMask = dstStage,
-    .dstAccessMask = dstAccess,
-    .oldLayout = oldLayout,
-    .newLayout = newLayout,
+    .srcStageMask = src_stage,
+    .srcAccessMask = src_access,
+    .dstStageMask = dst_stage,
+    .dstAccessMask = dst_access,
+    .oldLayout = old_layout,
+    .newLayout = new_layout,
     .image = handle,
     .subresourceRange = {
       .aspectMask = aspect, .levelCount = 1, .layerCount = 1}};

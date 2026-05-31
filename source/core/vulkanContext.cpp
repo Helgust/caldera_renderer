@@ -34,7 +34,7 @@ static bool hasLayer(const char* name) {
                      });
 }
 
-void VulkanContext::init(uint32_t deviceIndex) {
+void VulkanContext::init(uint32_t device_index) {
   // Taken directly from your main() — Instance block
   volkInitialize();
 
@@ -100,8 +100,8 @@ void VulkanContext::init(uint32_t deviceIndex) {
   vkCheck(vkEnumeratePhysicalDevices(instance, &devCount, nullptr));
   std::vector<VkPhysicalDevice> devices(devCount);
   vkCheck(vkEnumeratePhysicalDevices(instance, &devCount, devices.data()));
-  assert(deviceIndex < devCount);
-  physicalDevice = devices[deviceIndex];
+  assert(device_index < devCount);
+  physicalDevice = devices[device_index];
 
   VkPhysicalDeviceProperties2 props{
     .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};

@@ -28,7 +28,7 @@ struct VulkanContext {
   VmaAllocator allocator{VK_NULL_HANDLE};
   VkDebugUtilsMessengerEXT debugMessenger{VK_NULL_HANDLE};
 
-  void init(uint32_t deviceIndex = 0);
+  void init(uint32_t device_index = 0);
   void destroy();
 };
 

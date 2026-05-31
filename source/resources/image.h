@@ -17,11 +17,12 @@ struct Image {
 
   // Inserts a VkImageMemoryBarrier2 into cb.
   // The frame graph will call this — same method, computed inputs.
-  void transitionLayout(VkCommandBuffer cb, VkImageLayout oldLayout,
-                        VkImageLayout newLayout, VkPipelineStageFlags2 srcStage,
-                        VkAccessFlags2 srcAccess,
-                        VkPipelineStageFlags2 dstStage,
-                        VkAccessFlags2 dstAccess,
+  void transitionLayout(VkCommandBuffer cb, VkImageLayout old_layout,
+                        VkImageLayout new_layout,
+                        VkPipelineStageFlags2 src_stage,
+                        VkAccessFlags2 src_access,
+                        VkPipelineStageFlags2 dst_stage,
+                        VkAccessFlags2 dst_access,
                         VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT);
 
   void destroy(VkDevice device, VmaAllocator allocator);

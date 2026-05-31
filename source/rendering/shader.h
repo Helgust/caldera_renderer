@@ -20,7 +20,7 @@ struct ShaderModule {
 
   static ShaderModule loadSlang(VkDevice device, slang::ISession* session,
                                 const std::string& path,
-                                const std::string& moduleName);
+                                const std::string& module_name);
 
   void destroy(VkDevice device);
 };
