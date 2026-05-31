@@ -1,6 +1,7 @@
 #include "core/swapchain.h"
 #include <cassert>
 #include <cstdint>
+#include <cstdio>
 #include <vector>
 
 namespace caldera {
@@ -47,8 +48,19 @@ void Swapchain::init(VulkanContext& ctx, VkSurfaceKHR surface,
   VkSurfaceCapabilitiesKHR caps{};
   vkCheck(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx.physicalDevice, surface,
                                                     &caps));
-  extent = {static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y)};
 
+  extent = caps.currentExtent;
+  if (extent.width == UINT32_MAX) {
+    extent.width =
+      glm::clamp(static_cast<uint32_t>(size.x), caps.minImageExtent.width,
+                 caps.maxImageExtent.width);
+    extent.height =
+      glm::clamp(static_cast<uint32_t>(size.y), caps.minImageExtent.height,
+                 caps.maxImageExtent.height);
+  }
+
+  fprintf(stdout, "Create swapchain %u %u - saved %u %u, min image %u\n",
+          extent.width, extent.height, size.x, size.y, caps.minImageCount);
   lastCI_ = VkSwapchainCreateInfoKHR{
     .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
     .surface = surface,
@@ -82,7 +94,18 @@ void Swapchain::recreate(VulkanContext& ctx, VkSurfaceKHR surface,
   VkSurfaceCapabilitiesKHR caps{};
   vkCheck(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx.physicalDevice, surface,
                                                     &caps));
-  extent = {static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y)};
+  extent = caps.currentExtent;
+  if (extent.width == UINT32_MAX) {
+    extent.width =
+      glm::clamp(static_cast<uint32_t>(size.x), caps.minImageExtent.width,
+                 caps.maxImageExtent.width);
+    extent.height =
+      glm::clamp(static_cast<uint32_t>(size.y), caps.minImageExtent.height,
+                 caps.maxImageExtent.height);
+  }
+
+  fprintf(stdout, "Recreate swapchain %u %u - saved %u %u, min image %u\n",
+          extent.width, extent.height, size.x, size.y, caps.minImageCount);
 
   lastCI_.oldSwapchain = handle;
   lastCI_.imageExtent = extent;
