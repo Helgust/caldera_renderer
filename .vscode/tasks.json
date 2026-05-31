@@ -8,7 +8,7 @@
       "type": "shell",
       "command": "clang-tidy",
       "args": [
-        "${file}",
+        { "value": "${file}", "quoting": "strong" },
         "-p",
         "build"
       ],
@@ -30,20 +30,24 @@
     {
       "label": "Clang format changed files",
       "type": "shell",
-      "command": "git diff -U0 | python tools/clang-format-diff.py -i -p1",
-      "problemMatcher": []
+      "command": "git diff -U0 | python tools/clang-format-diff.py -i -v -p1 -iregex '.*\\.(cpp|cc|cxx|h|hpp|hxx|inl)$'",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
     },
     {
       "label": "Clang format last commit",
       "type": "shell",
-      "command": "git diff -U0 HEAD~1 | python tools/clang-format-diff.py -i -p1",
-      "problemMatcher": []
-    },
-    {
-      "label": "Clang format last commit",
-      "type": "shell",
-      "command": "git diff -U0 HEAD~1 | python tools/clang-format-diff.py -i -p1",
-      "problemMatcher": []
+      "command": "git diff -U0 HEAD~1 | python tools/clang-format-diff.py -i -v -p1 -iregex '.*\\.(cpp|cc|cxx|h|hpp|hxx|inl)$'",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
     },
     {
       "label": "Clang format current file",
@@ -51,7 +55,7 @@
       "command": "clang-format",
       "args":[
         "-i",
-        "${file}"
+        { "value": "${file}", "quoting": "strong" }
       ],
       "options": {"cwd": "${workspaceFolder}"},
       "presentation": {
