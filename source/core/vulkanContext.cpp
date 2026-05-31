@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <optional>
 #include <vector>
 #include "core/debugUtils.h"
 
@@ -34,7 +35,22 @@ static bool hasLayer(const char* name) {
                      });
 }
 
-void VulkanContext::init(uint32_t device_index) {
+// Queue family
+static std::optional<uint32_t> findGraphicsFamily(VkPhysicalDevice candidate) {
+  uint32_t count{0};
+  vkGetPhysicalDeviceQueueFamilyProperties(candidate, &count, nullptr);
+  std::vector<VkQueueFamilyProperties> families(count);
+  vkGetPhysicalDeviceQueueFamilyProperties(candidate, &count, families.data());
+
+  for (uint32_t i = 0; i < families.size(); i++) {
+    if (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+      return i;
+    }
+  }
+  return {};
+}
+
+void VulkanContext::init() {
   // Taken directly from your main() — Instance block
   volkInitialize();
 
@@ -100,26 +116,44 @@ void VulkanContext::init(uint32_t device_index) {
   vkCheck(vkEnumeratePhysicalDevices(instance, &devCount, nullptr));
   std::vector<VkPhysicalDevice> devices(devCount);
   vkCheck(vkEnumeratePhysicalDevices(instance, &devCount, devices.data()));
-  assert(device_index < devCount);
-  physicalDevice = devices[device_index];
+  VkPhysicalDevice discreteGpu = VK_NULL_HANDLE;
+  VkPhysicalDevice integratedGpu = VK_NULL_HANDLE;
+  for (VkPhysicalDevice candidate : devices) {
+    VkPhysicalDeviceProperties2 props{
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+    vkGetPhysicalDeviceProperties2(candidate, &props);
+
+    // Only consider devices we can actually drive: a graphics queue (and
+    // present — see question below).
+    if (!findGraphicsFamily(candidate)) {
+      continue;
+    }
+
+    switch (props.properties.deviceType) {
+      case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+        discreteGpu = candidate;
+        break;  // best case — stop looking
+      case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+        integratedGpu = candidate;  // remember, keep looking for a discrete
+        break;
+      default:
+        break;
+    }
+
+    if (discreteGpu != VK_NULL_HANDLE) {
+      break;
+    }
+  }
+
+  physicalDevice =
+    (discreteGpu != VK_NULL_HANDLE) ? discreteGpu : integratedGpu;
+  assert(physicalDevice != VK_NULL_HANDLE && "No suitable GPU found");
+  graphicsFamily = findGraphicsFamily(physicalDevice).value();
 
   VkPhysicalDeviceProperties2 props{
     .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
   vkGetPhysicalDeviceProperties2(physicalDevice, &props);
   std::cout << "Selected device: " << props.properties.deviceName << "\n";
-
-  // Queue family
-  uint32_t qfCount{0};
-  vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfCount, nullptr);
-  std::vector<VkQueueFamilyProperties> qfs(qfCount);
-  vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfCount,
-                                           qfs.data());
-  for (uint32_t i = 0; i < qfCount; i++) {
-    if (qfs[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-      graphicsFamily = i;
-      break;
-    }
-  }
 
   // Logical device — your full feature chain
   const float priority{1.0f};

@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
 
   // --- Core ---
   VulkanContext ctx;
-  ctx.init(deviceIndex);
+  ctx.init();
 
   SDL_Window* window = SDL_CreateWindow(
     "Caldera Renderer", 1280, 720, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
