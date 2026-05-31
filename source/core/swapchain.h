@@ -11,6 +11,7 @@ struct Swapchain {
   std::vector<VkImage> images;
   std::vector<VkImageView> views;
   VkFormat format{VK_FORMAT_B8G8R8A8_SRGB};
+  VkColorSpaceKHR colorSpace{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
   VkExtent2D extent{};
 
   void init(VulkanContext& ctx, VkSurfaceKHR surface, glm::ivec2 size);

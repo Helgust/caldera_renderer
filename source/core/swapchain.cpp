@@ -25,11 +25,12 @@ void Swapchain::init(VulkanContext& ctx, VkSurfaceKHR surface,
   bool formatFound = false;
   const uint32_t surfaceFormatCount = surfaceImageFormats.size();
 
-  for (int i = 0; i < surfaceFormatCount; i++) {
-    for (int j = 0; j < supportedCount; j++) {
+  for (uint32_t i = 0; i < surfaceFormatCount; i++) {
+    for (uint32_t j = 0; j < supportedCount; j++) {
       if (supportedFormats[j].format == surfaceImageFormats[i] &&
           supportedFormats[j].colorSpace == surfaceColorSpace) {
         format = supportedFormats[j].format;
+        colorSpace = supportedFormats[j].colorSpace;
         formatFound = true;
         break;
       }
@@ -39,9 +40,12 @@ void Swapchain::init(VulkanContext& ctx, VkSurfaceKHR surface,
       break;
   }
 
-  // Default to the first format supported.
+  // Default to the first supported pair. Take its colorspace too: the surface
+  // only guarantees format+colorspace together, so we must never pair a chosen
+  // format with an assumed colorspace.
   if (!formatFound) {
     format = supportedFormats[0].format;
+    colorSpace = supportedFormats[0].colorSpace;
     assert(false);
   }
 
@@ -74,7 +78,7 @@ void Swapchain::init(VulkanContext& ctx, VkSurfaceKHR surface,
     .surface = surface,
     .minImageCount = chooseSwapImageCount(caps),
     .imageFormat = format,
-    .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+    .imageColorSpace = colorSpace,
     .imageExtent = extent,
     .imageArrayLayers = 1,
     .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
