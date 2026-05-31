@@ -59,12 +59,20 @@ void Swapchain::init(VulkanContext& ctx, VkSurfaceKHR surface,
                  caps.maxImageExtent.height);
   }
 
+  auto chooseSwapImageCount =
+    [](const VkSurfaceCapabilitiesKHR& caps) -> uint32_t {
+    const uint32_t desired = caps.minImageCount + 1;
+    const bool exceeded =
+      caps.maxImageCount > 0 && desired > caps.maxImageCount;
+    return exceeded ? caps.maxImageCount : desired;
+  };
+
   fprintf(stdout, "Create swapchain %u %u - saved %u %u, min image %u\n",
           extent.width, extent.height, size.x, size.y, caps.minImageCount);
   lastCI_ = VkSwapchainCreateInfoKHR{
     .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
     .surface = surface,
-    .minImageCount = caps.minImageCount,
+    .minImageCount = chooseSwapImageCount(caps),
     .imageFormat = format,
     .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
     .imageExtent = extent,
