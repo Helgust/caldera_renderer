@@ -85,6 +85,25 @@
       }
     },
     {
+      "label": "Install recommended extensions",
+      "type": "shell",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "(Get-Content '${workspaceFolder}/.vscode/extensions.json' -Raw | ConvertFrom-Json).recommendations | ForEach-Object { Write-Host \"Installing $_\"; code --install-extension $_ }"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
       "label": "Bundle Codebase for Claude",
       "type": "shell",
       "command": "python",

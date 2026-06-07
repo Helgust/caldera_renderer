@@ -1,20 +1,21 @@
 {
   "recommendations": [
-    // C++ IntelliSense and debugging
-    "ms-vscode.cpptools",
-    "ms-vscode.cpptools-extension-pack",
-
-    // CMake
-    "ms-vscode.cmake-tools",
-    "twxs.cmake",
-
-    // Clang tooling
-    "llvm-vs-code-extensions.vscode-clangd",
-
-    // GLSL / shader editing
-    "slevesque.shader",
-
-    // Git
-    "eamodio.gitlens"
+  "alexandrshcherbakov.launchoption",
+  "anthropic.claude-code",
+  "catppuccin.catppuccin-vsc",
+  "eamodio.gitlens",
+  "github.github-vscode-theme",
+  "llvm-vs-code-extensions.vscode-clangd",
+  "ms-vscode.cmake-tools",
+  "ms-vscode.cpp-devtools",
+  "ms-vscode.cpptools",
+  "ms-vscode.cpptools-extension-pack",
+  "ms-vscode.cpptools-themes",
+  "rssowl.copy-relative-path-posix",
+  "shader-slang.slang-language-extension",
+  "twxs.cmake",
+  "wilsonsio.color-vision",
+  "xaver.clang-format",
+  "shardulm94.trailing-spaces"
   ]
 }
