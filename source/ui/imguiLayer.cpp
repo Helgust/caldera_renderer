@@ -38,7 +38,9 @@ void ImGuiLayer::init(VulkanContext& ctx, SDL_Window* window, VkQueue queue,
   info.DescriptorPoolSize = 16;
   info.UseDynamicRendering = true;
   info.PipelineInfoMain.PipelineRenderingCreateInfo = renderingCI;
-  info.CheckVkResultFn = vkCheck;
+  info.CheckVkResultFn = [](VkResult r) {
+    vkCheck(r);
+  };
 
   ImGui_ImplVulkan_Init(&info);
 
