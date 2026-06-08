@@ -27,7 +27,7 @@ find_package(Vulkan REQUIRED)
 FetchContent_Declare(
     tinygltf
     GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
-    GIT_TAG release
+    GIT_TAG v3.0.0
 )
 FetchContent_MakeAvailable(tinygltf)
 
@@ -38,7 +38,7 @@ FetchContent_MakeAvailable(tinygltf)
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG docking
+    GIT_TAG v1.92.8-docking
 )
 FetchContent_MakeAvailable(imgui)
 
@@ -52,13 +52,14 @@ set(KTX_FEATURE_DOC OFF CACHE BOOL "" FORCE)
 set(KTX_FEATURE_LOADTEST_APPS OFF CACHE BOOL "" FORCE)
 set(KTX_FEATURE_GL_UPLOAD OFF CACHE BOOL "" FORCE)
 set(KTX_FEATURE_WRITE OFF CACHE BOOL "" FORCE)
-
+message(NOTICE "Fetching LibKTX from https://github.com/KhronosGroup/KTX-Software ...")
+set(KTX_FEATURE_STATIC_LIBRARY ON CACHE BOOL "Build KTX as a static library" FORCE)
 FetchContent_Declare(
-    ktx
+    fetch_ktx
     GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software.git
-    GIT_TAG main
+    GIT_TAG v4.4.2
 )
-FetchContent_MakeAvailable(ktx)
+FetchContent_MakeAvailable(fetch_ktx)
 
 find_library(SDL_LIBRARY NAMES SDL3 HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
 find_library(Slang_LIBRARY NAMES slang slang-compiler HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
@@ -110,6 +111,7 @@ target_include_directories(${NAME} PRIVATE
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
     $ENV{VULKAN_SDK}/Include       # for volk, vma, slang headers
+    ${fetch_ktx_SOURCE_DIR}/include
 )
 
 target_link_libraries(${NAME} PRIVATE
