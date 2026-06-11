@@ -1,13 +1,778 @@
 {
   "launchOption.options": {
     "Scene": [
-      { "name": "Damaged Helmet", "value": "assets/scenes/damaged-helmet/damaged-helmet.gltf" },
-      { "name": "Sponza",         "value": "assets/scenes/sponza/sponza.gltf" },
-      { "name": "Triangle",       "value": "assets/scenes/triangle/triangle.gltf" }
+      {
+        "name": "Abeautifulgame",
+        "value": "assets/scenes/ABeautifulGame/glTF/ABeautifulGame.gltf"
+      },
+      {
+        "name": "Alphablendmodetest (Alphablendmodetest)",
+        "value": "assets/scenes/AlphaBlendModeTest/glTF/AlphaBlendModeTest.gltf"
+      },
+      {
+        "name": "Alphablendmodetest (Alphablendmodetest)",
+        "value": "assets/scenes/AlphaBlendModeTest/glTF-Embedded/AlphaBlendModeTest.gltf"
+      },
+      {
+        "name": "Animatedcolorscube",
+        "value": "assets/scenes/AnimatedColorsCube/glTF/AnimatedColorsCube.gltf"
+      },
+      {
+        "name": "Animatedcube",
+        "value": "assets/scenes/AnimatedCube/glTF/AnimatedCube.gltf"
+      },
+      {
+        "name": "Animatedmorphcube (Animatedmorphcube)",
+        "value": "assets/scenes/AnimatedMorphCube/glTF/AnimatedMorphCube.gltf"
+      },
+      {
+        "name": "Animatedmorphcube (Animatedmorphcube)",
+        "value": "assets/scenes/AnimatedMorphCube/glTF-Quantized/AnimatedMorphCube.gltf"
+      },
+      {
+        "name": "Animatedtriangle (Animatedtriangle)",
+        "value": "assets/scenes/AnimatedTriangle/glTF/AnimatedTriangle.gltf"
+      },
+      {
+        "name": "Animatedtriangle (Animatedtriangle)",
+        "value": "assets/scenes/AnimatedTriangle/glTF-Embedded/AnimatedTriangle.gltf"
+      },
+      {
+        "name": "Anisotropybarnlamp (Anisotropybarnlamp)",
+        "value": "assets/scenes/AnisotropyBarnLamp/glTF/AnisotropyBarnLamp.gltf"
+      },
+      {
+        "name": "Anisotropybarnlamp (Anisotropybarnlamp)",
+        "value": "assets/scenes/AnisotropyBarnLamp/glTF-KTX-BasisU/AnisotropyBarnLamp.gltf"
+      },
+      {
+        "name": "Anisotropydisctest",
+        "value": "assets/scenes/AnisotropyDiscTest/glTF/AnisotropyDiscTest.gltf"
+      },
+      {
+        "name": "Anisotropyrotationtest",
+        "value": "assets/scenes/AnisotropyRotationTest/glTF/AnisotropyRotationTest.gltf"
+      },
+      {
+        "name": "Anisotropystrengthtest",
+        "value": "assets/scenes/AnisotropyStrengthTest/glTF/AnisotropyStrengthTest.gltf"
+      },
+      {
+        "name": "Antiquecamera",
+        "value": "assets/scenes/AntiqueCamera/glTF/AntiqueCamera.gltf"
+      },
+      {
+        "name": "Attenuationtest",
+        "value": "assets/scenes/AttenuationTest/glTF/AttenuationTest.gltf"
+      },
+      {
+        "name": "Avocado (Avocado)",
+        "value": "assets/scenes/Avocado/glTF/Avocado.gltf"
+      },
+      {
+        "name": "Avocado (Avocado)",
+        "value": "assets/scenes/Avocado/glTF-Draco/Avocado.gltf"
+      },
+      {
+        "name": "Avocado (Avocado)",
+        "value": "assets/scenes/Avocado/glTF-Quantized/Avocado.gltf"
+      },
+      {
+        "name": "Barramundifish (Barramundifish)",
+        "value": "assets/scenes/BarramundiFish/glTF/BarramundiFish.gltf"
+      },
+      {
+        "name": "Barramundifish (Barramundifish)",
+        "value": "assets/scenes/BarramundiFish/glTF-Draco/BarramundiFish.gltf"
+      },
+      {
+        "name": "Boombox (Boombox)",
+        "value": "assets/scenes/BoomBox/glTF/BoomBox.gltf"
+      },
+      {
+        "name": "Boombox (Boombox)",
+        "value": "assets/scenes/BoomBox/glTF-Draco/BoomBox.gltf"
+      },
+      {
+        "name": "Boomboxwithaxes",
+        "value": "assets/scenes/BoomBoxWithAxes/glTF/BoomBoxWithAxes.gltf"
+      },
+      {
+        "name": "Box (Box)",
+        "value": "assets/scenes/Box/glTF/Box.gltf"
+      },
+      {
+        "name": "Box (Box)",
+        "value": "assets/scenes/Box/glTF-Draco/Box.gltf"
+      },
+      {
+        "name": "Box (Box)",
+        "value": "assets/scenes/Box/glTF-Embedded/Box.gltf"
+      },
+      {
+        "name": "Box With Spaces",
+        "value": "assets/scenes/Box With Spaces/glTF/Box With Spaces.gltf"
+      },
+      {
+        "name": "Boxanimated (Boxanimated)",
+        "value": "assets/scenes/BoxAnimated/glTF/BoxAnimated.gltf"
+      },
+      {
+        "name": "Boxanimated (Boxanimated)",
+        "value": "assets/scenes/BoxAnimated/glTF-Embedded/BoxAnimated.gltf"
+      },
+      {
+        "name": "Boxinterleaved (Boxinterleaved)",
+        "value": "assets/scenes/BoxInterleaved/glTF/BoxInterleaved.gltf"
+      },
+      {
+        "name": "Boxinterleaved (Boxinterleaved)",
+        "value": "assets/scenes/BoxInterleaved/glTF-Embedded/BoxInterleaved.gltf"
+      },
+      {
+        "name": "Boxtextured (Boxtextured)",
+        "value": "assets/scenes/BoxTextured/glTF/BoxTextured.gltf"
+      },
+      {
+        "name": "Boxtextured (Boxtextured)",
+        "value": "assets/scenes/BoxTextured/glTF-Embedded/BoxTextured.gltf"
+      },
+      {
+        "name": "Boxtexturednonpoweroftwo (Boxtexturednonpoweroftwo)",
+        "value": "assets/scenes/BoxTexturedNonPowerOfTwo/glTF/BoxTexturedNonPowerOfTwo.gltf"
+      },
+      {
+        "name": "Boxtexturednonpoweroftwo (Boxtexturednonpoweroftwo)",
+        "value": "assets/scenes/BoxTexturedNonPowerOfTwo/glTF-Embedded/BoxTexturedNonPowerOfTwo.gltf"
+      },
+      {
+        "name": "Boxvertexcolors (Boxvertexcolors)",
+        "value": "assets/scenes/BoxVertexColors/glTF/BoxVertexColors.gltf"
+      },
+      {
+        "name": "Boxvertexcolors (Boxvertexcolors)",
+        "value": "assets/scenes/BoxVertexColors/glTF-Embedded/BoxVertexColors.gltf"
+      },
+      {
+        "name": "Brainstem (Brainstem)",
+        "value": "assets/scenes/BrainStem/glTF/BrainStem.gltf"
+      },
+      {
+        "name": "Brainstem (Brainstem)",
+        "value": "assets/scenes/BrainStem/glTF-Draco/BrainStem.gltf"
+      },
+      {
+        "name": "Brainstem (Brainstem)",
+        "value": "assets/scenes/BrainStem/glTF-Embedded/BrainStem.gltf"
+      },
+      {
+        "name": "Brainstem (Brainstem)",
+        "value": "assets/scenes/BrainStem/glTF-Meshopt/BrainStem.gltf"
+      },
+      {
+        "name": "Cameras (Cameras)",
+        "value": "assets/scenes/Cameras/glTF/Cameras.gltf"
+      },
+      {
+        "name": "Cameras (Cameras)",
+        "value": "assets/scenes/Cameras/glTF-Embedded/Cameras.gltf"
+      },
+      {
+        "name": "Carbonfibre",
+        "value": "assets/scenes/CarbonFibre/glTF/CarbonFibre.gltf"
+      },
+      {
+        "name": "Cesiumman (Cesiumman)",
+        "value": "assets/scenes/CesiumMan/glTF/CesiumMan.gltf"
+      },
+      {
+        "name": "Cesiumman (Cesiumman)",
+        "value": "assets/scenes/CesiumMan/glTF-Draco/CesiumMan.gltf"
+      },
+      {
+        "name": "Cesiumman (Cesiumman)",
+        "value": "assets/scenes/CesiumMan/glTF-Embedded/CesiumMan.gltf"
+      },
+      {
+        "name": "Cesiummilktruck (Cesiummilktruck)",
+        "value": "assets/scenes/CesiumMilkTruck/glTF/CesiumMilkTruck.gltf"
+      },
+      {
+        "name": "Cesiummilktruck (Cesiummilktruck)",
+        "value": "assets/scenes/CesiumMilkTruck/glTF-Draco/CesiumMilkTruck.gltf"
+      },
+      {
+        "name": "Cesiummilktruck (Cesiummilktruck)",
+        "value": "assets/scenes/CesiumMilkTruck/glTF-Embedded/CesiumMilkTruck.gltf"
+      },
+      {
+        "name": "Chairdamaskpurplegold",
+        "value": "assets/scenes/ChairDamaskPurplegold/glTF/ChairDamaskPurplegold.gltf"
+      },
+      {
+        "name": "Clearcoatcarpaint",
+        "value": "assets/scenes/ClearCoatCarPaint/glTF/ClearCoatCarPaint.gltf"
+      },
+      {
+        "name": "Clearcoattest",
+        "value": "assets/scenes/ClearCoatTest/glTF/ClearCoatTest.gltf"
+      },
+      {
+        "name": "Clearcoatwicker",
+        "value": "assets/scenes/ClearcoatWicker/glTF/ClearcoatWicker.gltf"
+      },
+      {
+        "name": "Comparealphacoverage",
+        "value": "assets/scenes/CompareAlphaCoverage/glTF/CompareAlphaCoverage.gltf"
+      },
+      {
+        "name": "Compareambientocclusion",
+        "value": "assets/scenes/CompareAmbientOcclusion/glTF/CompareAmbientOcclusion.gltf"
+      },
+      {
+        "name": "Compareanisotropy",
+        "value": "assets/scenes/CompareAnisotropy/glTF/CompareAnisotropy.gltf"
+      },
+      {
+        "name": "Comparebasecolor",
+        "value": "assets/scenes/CompareBaseColor/glTF/CompareBaseColor.gltf"
+      },
+      {
+        "name": "Compareclearcoat",
+        "value": "assets/scenes/CompareClearcoat/glTF/CompareClearcoat.gltf"
+      },
+      {
+        "name": "Comparedispersion",
+        "value": "assets/scenes/CompareDispersion/glTF/CompareDispersion.gltf"
+      },
+      {
+        "name": "Compareemissivestrength",
+        "value": "assets/scenes/CompareEmissiveStrength/glTF/CompareEmissiveStrength.gltf"
+      },
+      {
+        "name": "Compareior",
+        "value": "assets/scenes/CompareIor/glTF/CompareIor.gltf"
+      },
+      {
+        "name": "Compareiridescence",
+        "value": "assets/scenes/CompareIridescence/glTF/CompareIridescence.gltf"
+      },
+      {
+        "name": "Comparemetallic",
+        "value": "assets/scenes/CompareMetallic/glTF/CompareMetallic.gltf"
+      },
+      {
+        "name": "Comparenormal",
+        "value": "assets/scenes/CompareNormal/glTF/CompareNormal.gltf"
+      },
+      {
+        "name": "Compareroughness",
+        "value": "assets/scenes/CompareRoughness/glTF/CompareRoughness.gltf"
+      },
+      {
+        "name": "Comparesheen",
+        "value": "assets/scenes/CompareSheen/glTF/CompareSheen.gltf"
+      },
+      {
+        "name": "Comparespecular",
+        "value": "assets/scenes/CompareSpecular/glTF/CompareSpecular.gltf"
+      },
+      {
+        "name": "Comparetransmission",
+        "value": "assets/scenes/CompareTransmission/glTF/CompareTransmission.gltf"
+      },
+      {
+        "name": "Comparevolume",
+        "value": "assets/scenes/CompareVolume/glTF/CompareVolume.gltf"
+      },
+      {
+        "name": "Corset (Corset)",
+        "value": "assets/scenes/Corset/glTF/Corset.gltf"
+      },
+      {
+        "name": "Corset (Corset)",
+        "value": "assets/scenes/Corset/glTF-Draco/Corset.gltf"
+      },
+      {
+        "name": "Cube",
+        "value": "assets/scenes/Cube/glTF/Cube.gltf"
+      },
+      {
+        "name": "Damaged Helmet",
+        "value": "assets/scenes/damaged-helmet/damaged-helmet.gltf"
+      },
+      {
+        "name": "Damagedhelmet (Damagedhelmet)",
+        "value": "assets/scenes/DamagedHelmet/glTF/DamagedHelmet.gltf"
+      },
+      {
+        "name": "Damagedhelmet (Damagedhelmet)",
+        "value": "assets/scenes/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf"
+      },
+      {
+        "name": "Diffusetransmissionplant",
+        "value": "assets/scenes/DiffuseTransmissionPlant/glTF/DiffuseTransmissionPlant.gltf"
+      },
+      {
+        "name": "Diffusetransmissionteacup",
+        "value": "assets/scenes/DiffuseTransmissionTeacup/glTF/DiffuseTransmissionTeacup.gltf"
+      },
+      {
+        "name": "Directionallight",
+        "value": "assets/scenes/DirectionalLight/glTF/DirectionalLight.gltf"
+      },
+      {
+        "name": "Dispersiontest",
+        "value": "assets/scenes/DispersionTest/glTF/DispersionTest.gltf"
+      },
+      {
+        "name": "Dragonattenuation (Dragonattenuation)",
+        "value": "assets/scenes/DragonAttenuation/glTF/DragonAttenuation.gltf"
+      },
+      {
+        "name": "Dragonattenuation (Dragonattenuation)",
+        "value": "assets/scenes/DragonAttenuation/glTF-Meshopt/DragonAttenuation.gltf"
+      },
+      {
+        "name": "Dragondispersion",
+        "value": "assets/scenes/DragonDispersion/glTF/DragonDispersion.gltf"
+      },
+      {
+        "name": "Duck (Duck)",
+        "value": "assets/scenes/Duck/glTF/Duck.gltf"
+      },
+      {
+        "name": "Duck (Duck)",
+        "value": "assets/scenes/Duck/glTF-Draco/Duck.gltf"
+      },
+      {
+        "name": "Duck (Duck)",
+        "value": "assets/scenes/Duck/glTF-Embedded/Duck.gltf"
+      },
+      {
+        "name": "Duck (Duck)",
+        "value": "assets/scenes/Duck/glTF-Quantized/Duck.gltf"
+      },
+      {
+        "name": "Emissivestrengthtest",
+        "value": "assets/scenes/EmissiveStrengthTest/glTF/EmissiveStrengthTest.gltf"
+      },
+      {
+        "name": "Environmenttest (Environmenttest)",
+        "value": "assets/scenes/EnvironmentTest/glTF/EnvironmentTest.gltf"
+      },
+      {
+        "name": "Environmenttest (Environmenttest)",
+        "value": "assets/scenes/EnvironmentTest/glTF-IBL/EnvironmentTest.gltf"
+      },
+      {
+        "name": "Flighthelmet",
+        "value": "assets/scenes/FlightHelmet/glTF/FlightHelmet.gltf"
+      },
+      {
+        "name": "Fox",
+        "value": "assets/scenes/Fox/glTF/Fox.gltf"
+      },
+      {
+        "name": "Glamvelvetsofa",
+        "value": "assets/scenes/GlamVelvetSofa/glTF/GlamVelvetSofa.gltf"
+      },
+      {
+        "name": "Glassbrokenwindow",
+        "value": "assets/scenes/GlassBrokenWindow/glTF/GlassBrokenWindow.gltf"
+      },
+      {
+        "name": "Glasshurricanecandleholder",
+        "value": "assets/scenes/GlassHurricaneCandleHolder/glTF/GlassHurricaneCandleHolder.gltf"
+      },
+      {
+        "name": "Glassvaseflowers",
+        "value": "assets/scenes/GlassVaseFlowers/glTF/GlassVaseFlowers.gltf"
+      },
+      {
+        "name": "Interpolationtest",
+        "value": "assets/scenes/InterpolationTest/glTF/InterpolationTest.gltf"
+      },
+      {
+        "name": "Iortestgrid",
+        "value": "assets/scenes/IORTestGrid/glTF/IORTestGrid.gltf"
+      },
+      {
+        "name": "Iridescenceabalone",
+        "value": "assets/scenes/IridescenceAbalone/glTF/IridescenceAbalone.gltf"
+      },
+      {
+        "name": "Iridescencedielectricspheres",
+        "value": "assets/scenes/IridescenceDielectricSpheres/glTF/IridescenceDielectricSpheres.gltf"
+      },
+      {
+        "name": "Iridescencelamp",
+        "value": "assets/scenes/IridescenceLamp/glTF/IridescenceLamp.gltf"
+      },
+      {
+        "name": "Iridescencemetallicspheres",
+        "value": "assets/scenes/IridescenceMetallicSpheres/glTF/IridescenceMetallicSpheres.gltf"
+      },
+      {
+        "name": "Iridescencesuzanne",
+        "value": "assets/scenes/IridescenceSuzanne/glTF/IridescenceSuzanne.gltf"
+      },
+      {
+        "name": "Iridescentdishwitholives",
+        "value": "assets/scenes/IridescentDishWithOlives/glTF/IridescentDishWithOlives.gltf"
+      },
+      {
+        "name": "Lantern (Lantern)",
+        "value": "assets/scenes/Lantern/glTF/Lantern.gltf"
+      },
+      {
+        "name": "Lantern (Lantern)",
+        "value": "assets/scenes/Lantern/glTF-Draco/Lantern.gltf"
+      },
+      {
+        "name": "Lantern (Lantern)",
+        "value": "assets/scenes/Lantern/glTF-Quantized/Lantern.gltf"
+      },
+      {
+        "name": "Lightspunctuallamp",
+        "value": "assets/scenes/LightsPunctualLamp/glTF/LightsPunctualLamp.gltf"
+      },
+      {
+        "name": "Mandarinorange",
+        "value": "assets/scenes/MandarinOrange/glTF/MandarinOrange.gltf"
+      },
+      {
+        "name": "Materialsvariantsshoe",
+        "value": "assets/scenes/MaterialsVariantsShoe/glTF/MaterialsVariantsShoe.gltf"
+      },
+      {
+        "name": "Meshprimitivemodes (Meshprimitivemodes)",
+        "value": "assets/scenes/MeshPrimitiveModes/glTF/MeshPrimitiveModes.gltf"
+      },
+      {
+        "name": "Meshprimitivemodes (Meshprimitivemodes)",
+        "value": "assets/scenes/MeshPrimitiveModes/glTF-Embedded/MeshPrimitiveModes.gltf"
+      },
+      {
+        "name": "Metalroughspheres (Metalroughspheres)",
+        "value": "assets/scenes/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf"
+      },
+      {
+        "name": "Metalroughspheres (Metalroughspheres)",
+        "value": "assets/scenes/MetalRoughSpheres/glTF-Embedded/MetalRoughSpheres.gltf"
+      },
+      {
+        "name": "Metalroughspheresnotextures",
+        "value": "assets/scenes/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.gltf"
+      },
+      {
+        "name": "Morphprimitivestest (Morphprimitivestest)",
+        "value": "assets/scenes/MorphPrimitivesTest/glTF/MorphPrimitivesTest.gltf"
+      },
+      {
+        "name": "Morphprimitivestest (Morphprimitivestest)",
+        "value": "assets/scenes/MorphPrimitivesTest/glTF-Draco/MorphPrimitivesTest.gltf"
+      },
+      {
+        "name": "Morphstresstest",
+        "value": "assets/scenes/MorphStressTest/glTF/MorphStressTest.gltf"
+      },
+      {
+        "name": "Mosquitoinamber",
+        "value": "assets/scenes/MosquitoInAmber/glTF/MosquitoInAmber.gltf"
+      },
+      {
+        "name": "Multiplescenes (Multiplescenes)",
+        "value": "assets/scenes/MultipleScenes/glTF/MultipleScenes.gltf"
+      },
+      {
+        "name": "Multiplescenes (Multiplescenes)",
+        "value": "assets/scenes/MultipleScenes/glTF-Embedded/MultipleScenes.gltf"
+      },
+      {
+        "name": "Multiuvtest (Multiuvtest)",
+        "value": "assets/scenes/MultiUVTest/glTF/MultiUVTest.gltf"
+      },
+      {
+        "name": "Multiuvtest (Multiuvtest)",
+        "value": "assets/scenes/MultiUVTest/glTF-Embedded/MultiUVTest.gltf"
+      },
+      {
+        "name": "Negativescaletest",
+        "value": "assets/scenes/NegativeScaleTest/glTF/NegativeScaleTest.gltf"
+      },
+      {
+        "name": "Normaltangentmirrortest",
+        "value": "assets/scenes/NormalTangentMirrorTest/glTF/NormalTangentMirrorTest.gltf"
+      },
+      {
+        "name": "Normaltangenttest",
+        "value": "assets/scenes/NormalTangentTest/glTF/NormalTangentTest.gltf"
+      },
+      {
+        "name": "Orientationtest (Orientationtest)",
+        "value": "assets/scenes/OrientationTest/glTF/OrientationTest.gltf"
+      },
+      {
+        "name": "Orientationtest (Orientationtest)",
+        "value": "assets/scenes/OrientationTest/glTF-Embedded/OrientationTest.gltf"
+      },
+      {
+        "name": "Potofcoals",
+        "value": "assets/scenes/PotOfCoals/glTF/PotOfCoals.gltf"
+      },
+      {
+        "name": "Primitivemodenormalstest",
+        "value": "assets/scenes/PrimitiveModeNormalsTest/glTF/PrimitiveModeNormalsTest.gltf"
+      },
+      {
+        "name": "Recursiveskeletons",
+        "value": "assets/scenes/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf"
+      },
+      {
+        "name": "Riggedfigure (Riggedfigure)",
+        "value": "assets/scenes/RiggedFigure/glTF/RiggedFigure.gltf"
+      },
+      {
+        "name": "Riggedfigure (Riggedfigure)",
+        "value": "assets/scenes/RiggedFigure/glTF-Draco/RiggedFigure.gltf"
+      },
+      {
+        "name": "Riggedfigure (Riggedfigure)",
+        "value": "assets/scenes/RiggedFigure/glTF-Embedded/RiggedFigure.gltf"
+      },
+      {
+        "name": "Riggedsimple (Riggedsimple)",
+        "value": "assets/scenes/RiggedSimple/glTF/RiggedSimple.gltf"
+      },
+      {
+        "name": "Riggedsimple (Riggedsimple)",
+        "value": "assets/scenes/RiggedSimple/glTF-Draco/RiggedSimple.gltf"
+      },
+      {
+        "name": "Riggedsimple (Riggedsimple)",
+        "value": "assets/scenes/RiggedSimple/glTF-Embedded/RiggedSimple.gltf"
+      },
+      {
+        "name": "Scifihelmet",
+        "value": "assets/scenes/SciFiHelmet/glTF/SciFiHelmet.gltf"
+      },
+      {
+        "name": "Sheenchair",
+        "value": "assets/scenes/SheenChair/glTF/SheenChair.gltf"
+      },
+      {
+        "name": "Sheencloth",
+        "value": "assets/scenes/SheenCloth/glTF/SheenCloth.gltf"
+      },
+      {
+        "name": "Sheentestgrid",
+        "value": "assets/scenes/SheenTestGrid/glTF/SheenTestGrid.gltf"
+      },
+      {
+        "name": "Sheenwoodleathersofa",
+        "value": "assets/scenes/SheenWoodLeatherSofa/glTF/SheenWoodLeatherSofa.gltf"
+      },
+      {
+        "name": "Simpleinstancing",
+        "value": "assets/scenes/SimpleInstancing/glTF/SimpleInstancing.gltf"
+      },
+      {
+        "name": "Simplematerial (Simplematerial)",
+        "value": "assets/scenes/SimpleMaterial/glTF/SimpleMaterial.gltf"
+      },
+      {
+        "name": "Simplematerial (Simplematerial)",
+        "value": "assets/scenes/SimpleMaterial/glTF-Embedded/SimpleMaterial.gltf"
+      },
+      {
+        "name": "Simplemeshes (Simplemeshes)",
+        "value": "assets/scenes/SimpleMeshes/glTF/SimpleMeshes.gltf"
+      },
+      {
+        "name": "Simplemeshes (Simplemeshes)",
+        "value": "assets/scenes/SimpleMeshes/glTF-Embedded/SimpleMeshes.gltf"
+      },
+      {
+        "name": "Simplemorph (Simplemorph)",
+        "value": "assets/scenes/SimpleMorph/glTF/SimpleMorph.gltf"
+      },
+      {
+        "name": "Simplemorph (Simplemorph)",
+        "value": "assets/scenes/SimpleMorph/glTF-Embedded/SimpleMorph.gltf"
+      },
+      {
+        "name": "Simpleskin (Simpleskin)",
+        "value": "assets/scenes/SimpleSkin/glTF/SimpleSkin.gltf"
+      },
+      {
+        "name": "Simpleskin (Simpleskin)",
+        "value": "assets/scenes/SimpleSkin/glTF-Embedded/SimpleSkin.gltf"
+      },
+      {
+        "name": "Simplesparseaccessor (Simplesparseaccessor)",
+        "value": "assets/scenes/SimpleSparseAccessor/glTF/SimpleSparseAccessor.gltf"
+      },
+      {
+        "name": "Simplesparseaccessor (Simplesparseaccessor)",
+        "value": "assets/scenes/SimpleSparseAccessor/glTF-Embedded/SimpleSparseAccessor.gltf"
+      },
+      {
+        "name": "Simpletexture (Simpletexture)",
+        "value": "assets/scenes/SimpleTexture/glTF/SimpleTexture.gltf"
+      },
+      {
+        "name": "Simpletexture (Simpletexture)",
+        "value": "assets/scenes/SimpleTexture/glTF-Embedded/SimpleTexture.gltf"
+      },
+      {
+        "name": "Specglossvsmetalrough",
+        "value": "assets/scenes/SpecGlossVsMetalRough/glTF/SpecGlossVsMetalRough.gltf"
+      },
+      {
+        "name": "Specularsilkpouf",
+        "value": "assets/scenes/SpecularSilkPouf/glTF/SpecularSilkPouf.gltf"
+      },
+      {
+        "name": "Speculartest",
+        "value": "assets/scenes/SpecularTest/glTF/SpecularTest.gltf"
+      },
+      {
+        "name": "Sponza",
+        "value": "assets/scenes/sponza/glTF/Sponza.gltf"
+      },
+      {
+        "name": "Stainedglasslamp (Stainedglasslamp)",
+        "value": "assets/scenes/StainedGlassLamp/glTF/StainedGlassLamp.gltf"
+      },
+      {
+        "name": "Stainedglasslamp (Stainedglasslamp)",
+        "value": "assets/scenes/StainedGlassLamp/glTF-JPG-PNG/StainedGlassLamp.gltf"
+      },
+      {
+        "name": "Stainedglasslamp (Stainedglasslamp)",
+        "value": "assets/scenes/StainedGlassLamp/glTF-KTX-BasisU/StainedGlassLamp.gltf"
+      },
+      {
+        "name": "Suzanne",
+        "value": "assets/scenes/Suzanne/glTF/Suzanne.gltf"
+      },
+      {
+        "name": "Texturecoordinatetest (Texturecoordinatetest)",
+        "value": "assets/scenes/TextureCoordinateTest/glTF/TextureCoordinateTest.gltf"
+      },
+      {
+        "name": "Texturecoordinatetest (Texturecoordinatetest)",
+        "value": "assets/scenes/TextureCoordinateTest/glTF-Embedded/TextureCoordinateTest.gltf"
+      },
+      {
+        "name": "Textureencodingtest",
+        "value": "assets/scenes/TextureEncodingTest/glTF/TextureEncodingTest.gltf"
+      },
+      {
+        "name": "Texturelinearinterpolationtest",
+        "value": "assets/scenes/TextureLinearInterpolationTest/glTF/TextureLinearInterpolationTest.gltf"
+      },
+      {
+        "name": "Texturesettingstest (Texturesettingstest)",
+        "value": "assets/scenes/TextureSettingsTest/glTF/TextureSettingsTest.gltf"
+      },
+      {
+        "name": "Texturesettingstest (Texturesettingstest)",
+        "value": "assets/scenes/TextureSettingsTest/glTF-Embedded/TextureSettingsTest.gltf"
+      },
+      {
+        "name": "Texturetransformmultitest",
+        "value": "assets/scenes/TextureTransformMultiTest/glTF/TextureTransformMultiTest.gltf"
+      },
+      {
+        "name": "Texturetransformtest",
+        "value": "assets/scenes/TextureTransformTest/glTF/TextureTransformTest.gltf"
+      },
+      {
+        "name": "Toycar",
+        "value": "assets/scenes/ToyCar/glTF/ToyCar.gltf"
+      },
+      {
+        "name": "Transmissionroughnesstest",
+        "value": "assets/scenes/TransmissionRoughnessTest/glTF/TransmissionRoughnessTest.gltf"
+      },
+      {
+        "name": "Transmissiontest",
+        "value": "assets/scenes/TransmissionTest/glTF/TransmissionTest.gltf"
+      },
+      {
+        "name": "Transmissionthinwalltestgrid",
+        "value": "assets/scenes/TransmissionThinwallTestGrid/glTF/TransmissionThinwallTestGrid.gltf"
+      },
+      {
+        "name": "Triangle (Triangle)",
+        "value": "assets/scenes/triangle/glTF/Triangle.gltf"
+      },
+      {
+        "name": "Triangle (Triangle)",
+        "value": "assets/scenes/triangle/glTF-Embedded/Triangle.gltf"
+      },
+      {
+        "name": "Triangle (Triangle)",
+        "value": "assets/scenes/triangle/triangle.gltf"
+      },
+      {
+        "name": "Trianglewithoutindices (Trianglewithoutindices)",
+        "value": "assets/scenes/TriangleWithoutIndices/glTF/TriangleWithoutIndices.gltf"
+      },
+      {
+        "name": "Trianglewithoutindices (Trianglewithoutindices)",
+        "value": "assets/scenes/TriangleWithoutIndices/glTF-Embedded/TriangleWithoutIndices.gltf"
+      },
+      {
+        "name": "Twosidedplane",
+        "value": "assets/scenes/TwoSidedPlane/glTF/TwoSidedPlane.gltf"
+      },
+      {
+        "name": "Unicode\u2764\u267bTest",
+        "value": "assets/scenes/Unicode\u2764\u267bTest/glTF/Unicode\u2764\u267bTest.gltf"
+      },
+      {
+        "name": "Unlittest",
+        "value": "assets/scenes/UnlitTest/glTF/UnlitTest.gltf"
+      },
+      {
+        "name": "Vertexcolortest (Vertexcolortest)",
+        "value": "assets/scenes/VertexColorTest/glTF/VertexColorTest.gltf"
+      },
+      {
+        "name": "Vertexcolortest (Vertexcolortest)",
+        "value": "assets/scenes/VertexColorTest/glTF-Embedded/VertexColorTest.gltf"
+      },
+      {
+        "name": "Virtualcity (Virtualcity)",
+        "value": "assets/scenes/VirtualCity/glTF/VirtualCity.gltf"
+      },
+      {
+        "name": "Virtualcity (Virtualcity)",
+        "value": "assets/scenes/VirtualCity/glTF-Draco/VirtualCity.gltf"
+      },
+      {
+        "name": "Virtualcity (Virtualcity)",
+        "value": "assets/scenes/VirtualCity/glTF-Embedded/VirtualCity.gltf"
+      },
+      {
+        "name": "Waterbottle (Waterbottle)",
+        "value": "assets/scenes/WaterBottle/glTF/WaterBottle.gltf"
+      },
+      {
+        "name": "Waterbottle (Waterbottle)",
+        "value": "assets/scenes/WaterBottle/glTF-Draco/WaterBottle.gltf"
+      },
+      {
+        "name": "Xmpmetadataroundedcube",
+        "value": "assets/scenes/XmpMetadataRoundedCube/glTF/XmpMetadataRoundedCube.gltf"
+      }
     ]
   },
   "launchOption.currentConfig": {
-    "Scene": "assets/scenes/sponza/sponza.gltf"
+    "Scene": "assets/scenes/Avocado/glTF/Avocado.gltf"
   },
   "cmake.debugConfig": {
     "args": []
