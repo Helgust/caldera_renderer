@@ -40,7 +40,6 @@ cmake_install.cmake
 assets/scenes
 
 combined_codebase.md
-tools/
 deps/src
 deps/archives
 deps/.bootstrap.json
