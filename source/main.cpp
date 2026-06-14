@@ -356,6 +356,7 @@ int main(int argc, char* argv[]) {
   uint32_t swapchainImageIndex{0};
   bool updateSwapchain{false};
   bool quit{false};
+  bool minimized{false};
   uint64_t lastTime{SDL_GetTicks()};
 
   auto onRecreate = [&]() {
@@ -374,16 +375,74 @@ int main(int argc, char* argv[]) {
 
   // --- Render loop ---
   while (!quit) {
+
+    // Events
+    float elapsedTime = (SDL_GetTicks() - lastTime) / 1000.0f;
+    lastTime = SDL_GetTicks();
+    for (SDL_Event event; SDL_PollEvent(&event);) {
+      ui.processEvent(event);
+      if (event.type == SDL_EVENT_QUIT) {
+        quit = true;
+        break;
+      }
+      if (event.type == SDL_EVENT_WINDOW_MINIMIZED) {
+        minimized = true;
+      }
+      if (event.type == SDL_EVENT_WINDOW_RESTORED) {
+        minimized = false;
+      }
+      if (ui.wantCaptureMouse() && (event.type == SDL_EVENT_MOUSE_MOTION ||
+                                    event.type == SDL_EVENT_MOUSE_WHEEL ||
+                                    event.type == SDL_EVENT_MOUSE_BUTTON_DOWN))
+        continue;  // ImGui is using the cursor; don't move the camera
+      if (event.type == SDL_EVENT_MOUSE_MOTION &&
+          event.button.button == SDL_BUTTON_LEFT) {
+        objectRotations[shaderData.selected].x -=
+          (float)event.motion.yrel * elapsedTime;
+        objectRotations[shaderData.selected].y +=
+          (float)event.motion.xrel * elapsedTime;
+      }
+      if (event.type == SDL_EVENT_MOUSE_WHEEL)
+        camPos.z += (float)event.wheel.y * elapsedTime * 10.0f;
+      if (event.type == SDL_EVENT_KEY_DOWN) {
+        if (event.key.key == SDLK_PLUS || event.key.key == SDLK_KP_PLUS)
+          shaderData.selected =
+            (shaderData.selected < 2) ? shaderData.selected + 1 : 0;
+        if (event.key.key == SDLK_MINUS || event.key.key == SDLK_KP_MINUS)
+          shaderData.selected =
+            (shaderData.selected > 0) ? shaderData.selected - 1 : 2;
+      }
+      if (event.type == SDL_EVENT_WINDOW_RESIZED)
+        updateSwapchain = true;
+    }
+
+    if (minimized)
+      continue;
+
+    // Swapchain recreate
+    if (updateSwapchain) {
+      updateSwapchain = false;
+      onRecreate();
+    }
+
     sync.waitAndResetFence(ctx.device, frameInFlightIndex);
 
-    VkResult acquireResult =
-      vkAcquireNextImageKHR(ctx.device, swapchain.handle, UINT64_MAX,
-                            sync.presentSemaphores[frameInFlightIndex],
-                            VK_NULL_HANDLE, &swapchainImageIndex);
-    if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
-      updateSwapchain = true;
-    } else {
-      vkCheck(acquireResult);
+    while (true) {
+      VkResult acquireResult =
+        vkAcquireNextImageKHR(ctx.device, swapchain.handle, UINT64_MAX,
+                              sync.presentSemaphores[frameInFlightIndex],
+                              VK_NULL_HANDLE, &swapchainImageIndex);
+      if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
+        onRecreate();  // no image acquired, semaphore untouched → rebuild + retry
+        continue;
+      }
+      if (acquireResult == VK_SUBOPTIMAL_KHR) {
+        updateSwapchain =
+          true;  // image IS acquired + sem signaled → use it, rebuild after present
+      } else {
+        vkCheck(acquireResult);
+      }
+      break;
     }
 
     // Update transforms
@@ -517,50 +576,11 @@ int main(int argc, char* argv[]) {
       .pSwapchains = &swapchain.handle,
       .pImageIndices = &swapchainImageIndex};
     VkResult presentResult = vkQueuePresentKHR(ctx.graphicsQueue, &presentInfo);
-    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR)
+    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR ||
+        presentResult == VK_SUBOPTIMAL_KHR)
       updateSwapchain = true;
     else
       vkCheck(presentResult);
-
-    // Events
-    float elapsedTime = (SDL_GetTicks() - lastTime) / 1000.0f;
-    lastTime = SDL_GetTicks();
-    for (SDL_Event event; SDL_PollEvent(&event);) {
-      ui.processEvent(event);
-      if (event.type == SDL_EVENT_QUIT) {
-        quit = true;
-        break;
-      }
-      if (ui.wantCaptureMouse() && (event.type == SDL_EVENT_MOUSE_MOTION ||
-                                    event.type == SDL_EVENT_MOUSE_WHEEL ||
-                                    event.type == SDL_EVENT_MOUSE_BUTTON_DOWN))
-        continue;  // ImGui is using the cursor; don't move the camera
-      if (event.type == SDL_EVENT_MOUSE_MOTION &&
-          event.button.button == SDL_BUTTON_LEFT) {
-        objectRotations[shaderData.selected].x -=
-          (float)event.motion.yrel * elapsedTime;
-        objectRotations[shaderData.selected].y +=
-          (float)event.motion.xrel * elapsedTime;
-      }
-      if (event.type == SDL_EVENT_MOUSE_WHEEL)
-        camPos.z += (float)event.wheel.y * elapsedTime * 10.0f;
-      if (event.type == SDL_EVENT_KEY_DOWN) {
-        if (event.key.key == SDLK_PLUS || event.key.key == SDLK_KP_PLUS)
-          shaderData.selected =
-            (shaderData.selected < 2) ? shaderData.selected + 1 : 0;
-        if (event.key.key == SDLK_MINUS || event.key.key == SDLK_KP_MINUS)
-          shaderData.selected =
-            (shaderData.selected > 0) ? shaderData.selected - 1 : 2;
-      }
-      if (event.type == SDL_EVENT_WINDOW_RESIZED)
-        updateSwapchain = true;
-    }
-
-    // Swapchain recreate
-    if (updateSwapchain) {
-      updateSwapchain = false;
-      onRecreate();
-    }
   }
 
   // --- Teardown ---
