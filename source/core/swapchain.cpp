@@ -46,7 +46,7 @@ void Swapchain::init(VulkanContext& ctx, VkSurfaceKHR surface,
   if (!formatFound) {
     format = supportedFormats[0].format;
     colorSpace = supportedFormats[0].colorSpace;
-    assert(false);
+    CALDERA_ASSERT_MSG(false, "no preferred surface format; fell back to [0]");
   }
 
   VkSurfaceCapabilitiesKHR caps{};

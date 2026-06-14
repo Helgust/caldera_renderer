@@ -6,6 +6,7 @@
 #include <iostream>
 #include <optional>
 #include <vector>
+#include "core/assert.h"
 #include "core/debugUtils.h"
 
 namespace caldera {
@@ -18,7 +19,13 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
     (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)     ? "ERROR"
     : (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) ? "WARN "
                                                                    : "INFO ";
-  std::cout << "[VK " << prefix << "] " << data->pMessage << "\n";
+  // Route through the shared sink so validation output also lands in the
+  // debugger Output window and caldera.log, not just the console.
+  logMessage("[VK %s] %s\n", prefix, data->pMessage);
+  // Break on validation ERRORs so the offending call is on top of the stack
+  // when a debugger is attached; with none, fall through (already logged).
+  if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+    breakIfDebugger();
   return VK_FALSE;
 }
 
@@ -147,7 +154,7 @@ void VulkanContext::init() {
 
   physicalDevice =
     (discreteGpu != VK_NULL_HANDLE) ? discreteGpu : integratedGpu;
-  assert(physicalDevice != VK_NULL_HANDLE && "No suitable GPU found");
+  CALDERA_ASSERT_MSG(physicalDevice != VK_NULL_HANDLE, "No suitable GPU found");
   graphicsFamily = findGraphicsFamily(physicalDevice).value();
 
   VkPhysicalDeviceProperties2 props{

@@ -1,7 +1,7 @@
 #include "scene/sceneLoader.h"
 #include <iostream>
-#include <stdexcept>
 #include <unordered_map>
+#include "core/assert.h"
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -22,8 +22,8 @@ Scene SceneLoader::load(const std::string& path) {
     std::cout << "glTF warning: " << warn << "\n";
   if (!err.empty())
     std::cout << "glTF error: " << err << "\n";
-  if (!loaded)
-    throw std::runtime_error("Failed to load glTF model");
+  CALDERA_ASSERT_MSG(loaded, "Failed to load glTF model '%s': %s", path.c_str(),
+                     err.empty() ? "(no detail)" : err.c_str());
 
   Scene scene;
   std::unordered_map<Vertex, uint16_t> uniqueVertices;

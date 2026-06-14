@@ -126,6 +126,15 @@ int main(int argc, char* argv[]) {
   std::string scenePath =
     std::string(ASSET_PATH) + "scenes/damaged-helmet/damaged-helmet.gltf";
 
+  {
+    std::string cmdLine;
+    for (int i = 0; i < argc; ++i) {
+      if (i > 0) cmdLine += ' ';
+      cmdLine += argv[i];
+    }
+    SDL_Log("Starting: %s", cmdLine.c_str());
+  }
+
   for (int i = 1; i < argc; ++i) {
     std::string_view arg{argv[i]};
     if ((arg == "--device" || arg == "-d") && i + 1 < argc) {
@@ -144,7 +153,7 @@ int main(int argc, char* argv[]) {
 
   SDL_Window* window = SDL_CreateWindow(
     "Caldera Renderer", 1280, 720, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
-  assert(window);
+  CALDERA_ASSERT_MSG(window, "SDL_CreateWindow failed: %s", SDL_GetError());
 
   VkSurfaceKHR surface{VK_NULL_HANDLE};
   sdlCheck(SDL_Vulkan_CreateSurface(window, ctx.instance, nullptr, &surface));
@@ -162,7 +171,8 @@ int main(int argc, char* argv[]) {
 
   // --- Depth image ---
   const VkFormat depthFormat = findDepthFormat(ctx.physicalDevice);
-  assert(depthFormat != VK_FORMAT_UNDEFINED);
+  CALDERA_ASSERT_MSG(depthFormat != VK_FORMAT_UNDEFINED,
+                     "no supported depth format");
 
   std::array<Image, kFramesInFlight> depthImages;
   for (size_t i = 0; i < depthImages.size(); ++i) {
