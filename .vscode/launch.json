@@ -5,7 +5,7 @@
       "name": "CalderaRenderer",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/CalderaRenderer.exe",
+      "program": "build/CalderaRenderer.exe",
       "args": ["--scene", "${config:launchOption.currentConfig.Scene}"],
       "cwd": "${workspaceFolder}",
       "stopAtEntry": false

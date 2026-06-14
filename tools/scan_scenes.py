@@ -5,8 +5,15 @@ VS Code workflow stores the pickable scenes under `launchOption.options.Scene`
 in .vscode/settings.json. Keeping that list in sync by hand is tedious, so this
 script rebuilds it from whatever .gltf files currently live on disk.
 
-Only ASCII .gltf is matched on purpose: SceneLoader::load calls
-tinygltf::LoadASCIIFromFile, so binary .glb files would parse-fail at runtime.
+Both .gltf and .glb are matched so every Khronos sample variant shows up. Each
+scene's display name is 'ModelFolder (variant-subpath)', e.g.
+'Damaged Helmet (glTF-Embedded/DamagedHelmet.gltf)'. The sub-path carries the
+variant (glTF / glTF-Binary / glTF-Embedded / glTF-Draco / ...) without having
+to inspect file contents.
+
+WARNING: SceneLoader::load still calls tinygltf::LoadASCIIFromFile, so .glb
+(glTF-Binary) entries are listed for visibility but will fail to load until the
+loader also handles LoadBinaryFromFile.
 
 Usage:
     python tools/scan_scenes.py [--dry-run]
@@ -24,34 +31,35 @@ SCENES_DIR = ROOT_DIR / "assets" / "scenes"
 SETTINGS_FILE = ROOT_DIR / ".vscode" / "settings.json"
 
 
-def to_display_name(raw: str) -> str:
-    """Turn a folder/file stem like 'damaged-helmet' into 'Damaged Helmet'."""
-    return raw.replace("-", " ").replace("_", " ").title()
-
-
 def find_scenes() -> List[Dict[str, str]]:
-    """Return [{name, value}, ...] for every .gltf under assets/scenes."""
+    """Return [{name, value}, ...] for every .gltf/.glb under assets/scenes.
+
+    The display name is 'ModelFolder (variant-subpath)', e.g.
+    'Damaged Helmet (glTF-Embedded/DamagedHelmet.gltf)'. The variant sub-path is
+    unique per file, so the sample variants stay distinct on their own -- no
+    extra disambiguation pass is needed.
+    """
     scenes: List[Dict[str, str]] = []
-    for gltf in sorted(SCENES_DIR.rglob("*.gltf")):
-        rel = gltf.relative_to(SCENES_DIR)
-        # Convention is one scene per sub-folder, so name after the folder.
-        # A .gltf sitting loose directly in scenes/ falls back to its stem.
-        base = rel.parts[0] if len(rel.parts) > 1 else gltf.stem
+    patterns = ("*.gltf", "*.glb")
+    files = sorted(f for pattern in patterns for f in SCENES_DIR.rglob(pattern))
+    for asset in files:
+        rel = asset.relative_to(SCENES_DIR)
+        # Convention is one scene per model folder, with the source variant in a
+        # sub-folder (glTF / glTF-Binary / glTF-Embedded / ...). Name after the
+        # model folder and tag with the variant sub-path so every variant reads
+        # distinctly. A file sitting loose in scenes/ falls back to its stem.
+        if len(rel.parts) > 1:
+            base = rel.parts[0]
+            sub = rel.relative_to(base).as_posix()
+        else:
+            base = asset.stem
+            sub = asset.name
         scenes.append({
-            "name": to_display_name(base),
+            "name": f"{base} ({sub})",
             # Paths are relative to the repo root with forward slashes, to
             # match the existing entries and stay platform-agnostic.
-            "value": gltf.relative_to(ROOT_DIR).as_posix(),
+            "value": asset.relative_to(ROOT_DIR).as_posix(),
         })
-
-    # Disambiguate any folders that hold more than one .gltf.
-    seen: Dict[str, int] = {}
-    for scene in scenes:
-        seen[scene["name"]] = seen.get(scene["name"], 0) + 1
-    for scene in scenes:
-        if seen[scene["name"]] > 1:
-            stem = Path(scene["value"]).stem
-            scene["name"] = f"{scene['name']} ({to_display_name(stem)})"
 
     return scenes
 

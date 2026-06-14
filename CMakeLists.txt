@@ -97,6 +97,7 @@ target_compile_definitions(${NAME} PRIVATE
     IMGUI_IMPL_VULKAN_VOLK_FILENAME=<volk/volk.h>
     ASSET_PATH="${CMAKE_SOURCE_DIR}/assets/"
     SHADER_PATH="${CMAKE_SOURCE_DIR}/shaders/"
+    CALDERA_ROOT_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 target_compile_features(${NAME} PRIVATE cxx_std_20)

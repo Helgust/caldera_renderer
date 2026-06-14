@@ -11,6 +11,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <filesystem>
 #include <string>
 #include <string_view>
 
@@ -119,6 +120,12 @@ static void printUsage(const char* exe) {
 }
 
 int main(int argc, char* argv[]) {
+  // Pin the working directory to the repo root so cwd-relative paths (notably
+  // --scene) resolve no matter which tool launched us. Throws if the baked
+  // root is gone (e.g. a binary shipped off the build machine) -- a loud,
+  // intentional failure rather than a confusing "file not found" later.
+  std::filesystem::current_path(CALDERA_ROOT_DIR);
+
   sdlCheck(SDL_Init(SDL_INIT_VIDEO));
   sdlCheck(SDL_Vulkan_LoadLibrary(NULL));
 
@@ -129,7 +136,8 @@ int main(int argc, char* argv[]) {
   {
     std::string cmdLine;
     for (int i = 0; i < argc; ++i) {
-      if (i > 0) cmdLine += ' ';
+      if (i > 0)
+        cmdLine += ' ';
       cmdLine += argv[i];
     }
     SDL_Log("Starting: %s", cmdLine.c_str());
