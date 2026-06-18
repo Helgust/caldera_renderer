@@ -15,8 +15,8 @@ static inline void vkCheck(
   VkResult r, std::source_location loc = std::source_location::current()) {
   if (r == VK_SUCCESS)
     return;
-  logMessage("%s(%u) : Vulkan error %d '%s'\n", loc.file_name(),
-             (unsigned)loc.line(), (int)r, string_VkResult(r));
+  logError("%s(%u) : Vulkan error %d '%s'", loc.file_name(),
+           (unsigned)loc.line(), (int)r, string_VkResult(r));
   onCheckFailed(string_VkResult(r));
   CALDERA_DEBUG_BREAK();
 }
@@ -25,7 +25,7 @@ static inline void sdlCheck(
   bool ok, std::source_location loc = std::source_location::current()) {
   if (ok)
     return;
-  logMessage("%s(%u) : SDL error\n", loc.file_name(), (unsigned)loc.line());
+  logError("%s(%u) : SDL error", loc.file_name(), (unsigned)loc.line());
   onCheckFailed("SDL error");
   CALDERA_DEBUG_BREAK();
 }

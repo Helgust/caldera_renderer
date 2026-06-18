@@ -15,13 +15,15 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL
 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
               VkDebugUtilsMessageTypeFlagsEXT,
               const VkDebugUtilsMessengerCallbackDataEXT* data, void*) {
-  const char* prefix =
-    (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)     ? "ERROR"
-    : (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) ? "WARN "
-                                                                   : "INFO ";
-  // Route through the shared sink so validation output also lands in the
-  // debugger Output window and caldera.log, not just the console.
-  logMessage("[VK %s] %s\n", prefix, data->pMessage);
+  // Route through the shared sink (debugger Output window + caldera.log, not
+  // just the console) at the matching severity. pMessage is passed as an
+  // argument, never as the format string, so stray '%' in it stay literal.
+  if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+    logError("[VK] %s", data->pMessage);
+  else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+    logWarn("[VK] %s", data->pMessage);
+  else
+    logInfo("[VK] %s", data->pMessage);
   // Break on validation ERRORs so the offending call is on top of the stack
   // when a debugger is attached; with none, fall through (already logged).
   if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
