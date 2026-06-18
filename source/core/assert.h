@@ -5,9 +5,8 @@
 // Assert / fatal handling, modeled on raptor's foundation/assert.hpp from
 // "Mastering Graphics Programming with Vulkan": RASSERT / RASSERTM print a
 // "file(line) : message" string then RAPTOR_DEBUG_BREAK so you land on the
-// failing call site. Output goes through the shared logMessage() sink (see
-// log.h), so every failure also reaches the debugger Output window and
-// caldera.log.
+// failing call site. Output goes through caldera::logError() (see log.h), so
+// every failure also reaches the debugger Output window and caldera.log.
 
 // --- file(line) prefix, matching raptor's RAPTOR_FILELINE --------------------
 #define CALDERA_STRINGIZE(x) #x
@@ -43,7 +42,7 @@ void onCheckFailed(const char* summary);
 #define CALDERA_ASSERT(cond)                                          \
   do {                                                                \
     if (!(cond)) {                                                    \
-      ::caldera::logMessage(CALDERA_FILELINE("Assertion failed: " #cond "\n")); \
+      ::caldera::logError(CALDERA_FILELINE("Assertion failed: " #cond)); \
       ::caldera::onCheckFailed("Assertion failed: " #cond);          \
       CALDERA_DEBUG_BREAK();                                          \
     }                                                                 \
@@ -53,8 +52,8 @@ void onCheckFailed(const char* summary);
 #define CALDERA_ASSERT_MSG(cond, fmt, ...)                                 \
   do {                                                                     \
     if (!(cond)) {                                                         \
-      ::caldera::logMessage(CALDERA_FILELINE(fmt "\n") __VA_OPT__(, )      \
-                              __VA_ARGS__);                                \
+      ::caldera::logError(CALDERA_FILELINE(fmt) __VA_OPT__(, )             \
+                            __VA_ARGS__);                                  \
       ::caldera::onCheckFailed(fmt);                                       \
       CALDERA_DEBUG_BREAK();                                               \
     }                                                                      \

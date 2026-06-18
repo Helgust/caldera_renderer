@@ -18,6 +18,7 @@
 #include "core/commandManager.h"
 #include "core/debugUtils.h"
 #include "core/gpuTimer.h"
+#include "core/log.h"
 #include "core/swapchain.h"
 #include "core/syncObjects.h"
 #include "core/vulkanContext.h"
@@ -125,6 +126,9 @@ int main(int argc, char* argv[]) {
   // root is gone (e.g. a binary shipped off the build machine) -- a loud,
   // intentional failure rather than a confusing "file not found" later.
   std::filesystem::current_path(CALDERA_ROOT_DIR);
+
+  // Start logging once the cwd is pinned, so caldera.log lands in the repo root.
+  logInit();
 
   sdlCheck(SDL_Init(SDL_INIT_VIDEO));
   sdlCheck(SDL_Vulkan_LoadLibrary(NULL));
@@ -612,5 +616,6 @@ int main(int argc, char* argv[]) {
   SDL_QuitSubSystem(SDL_INIT_VIDEO);
   SDL_Quit();
 
+  logShutdown();
   return 0;
 }

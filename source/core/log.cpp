@@ -1,43 +1,61 @@
 #include "core/log.h"
+
 #include <cstdarg>
-#include <cstdio>
-#include <ctime>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>  // OutputDebugStringA
 
+#include "minilog.h"
+
 namespace caldera {
+namespace {
 
-// One reusable buffer, like raptor's log_buffer — the renderer is single
-// threaded on the log path.
-static char gLogBuffer[8192];
-
-static void teeToFile(const char* text) {
-  // Best-effort: a failed log write must never mask the original fault.
-  FILE* f = nullptr;
-  if (fopen_s(&f, "caldera.log", "a") != 0 || !f)
-    return;
-  std::time_t now = std::time(nullptr);
-  std::tm tm{};
-  char stamp[32];
-  if (localtime_s(&tm, &now) == 0 &&
-      std::strftime(stamp, sizeof(stamp), "%H:%M:%S", &tm) > 0)
-    std::fprintf(f, "[%s] %s", stamp, text);
-  else
-    std::fputs(text, f);
-  std::fclose(f);
+// minilog writes to the console and the log file but not the debugger Output
+// window. Registered for every level in logInit(), this tees each message there
+// too, so it shows up in the Visual Studio / VS Code debug pane. minilog strips
+// the trailing newline before invoking callbacks, so we add it back.
+void teeToDebugger(void* /*userData*/, const char* msg) {
+  OutputDebugStringA(msg);
+  OutputDebugStringA("\n");
 }
 
-void logMessage(const char* fmt, ...) {
+}  // namespace
+
+void logInit() {
+  minilog::LogConfig cfg{};
+  cfg.forceFlush = true;      // flush after every line so a crash loses nothing
+  cfg.coloredConsole = true;  // severity colors in the console
+  cfg.threadNames = true;     // prefix each line with the logging thread's name
+  minilog::initialize("caldera.log", cfg);
+
+  minilog::LogCallback cb{};
+  for (auto& fn : cb.funcs)
+    fn = &teeToDebugger;
+  minilog::callbackAdd(cb);
+}
+
+void logShutdown() {
+  minilog::deinitialize();
+}
+
+void logInfo(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  std::vsnprintf(gLogBuffer, sizeof(gLogBuffer), fmt, args);
+  minilog::logVAList(minilog::Log, fmt, args);
   va_end(args);
-  gLogBuffer[sizeof(gLogBuffer) - 1] = '\0';
+}
 
-  std::fputs(gLogBuffer, stdout);  // console
-  std::fflush(stdout);
-  OutputDebugStringA(gLogBuffer);  // debugger Output window
-  teeToFile(gLogBuffer);           // caldera.log
+void logWarn(const char* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  minilog::logVAList(minilog::Warning, fmt, args);
+  va_end(args);
+}
+
+void logError(const char* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  minilog::logVAList(minilog::FatalError, fmt, args);
+  va_end(args);
 }
 
 }  // namespace caldera

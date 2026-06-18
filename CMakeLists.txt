@@ -61,6 +61,28 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fetch_ktx)
 
+# ----------------------------------
+# minilog (thread-safe logging)
+# ----------------------------------
+
+set(MINILOG_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+    minilog
+    GIT_REPOSITORY https://github.com/corporateshark/minilog.git
+    GIT_TAG 066506bfc2f9f57ee96035fcdd1b67262a8746b0
+)
+# Force a static lib regardless of BUILD_SHARED_LIBS: minilog's sources carry no
+# dllexport markup, so a DLL would export nothing and fail to link against it.
+set(_caldera_prev_shared ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS OFF)
+FetchContent_MakeAvailable(minilog)
+set(BUILD_SHARED_LIBS ${_caldera_prev_shared})
+# minilog's CMakeLists adds no usage requirements, so publish its header dir on
+# the target. MINILOG_ENABLE_VA_LIST exposes the logVAList() entry points the
+# caldera logging facade (source/core/log.cpp) forwards into.
+target_include_directories(minilog PUBLIC ${minilog_SOURCE_DIR})
+target_compile_definitions(minilog PUBLIC MINILOG_ENABLE_VA_LIST)
+
 find_library(SDL_LIBRARY NAMES SDL3 HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
 find_library(Slang_LIBRARY NAMES slang slang-compiler HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
 
@@ -118,6 +140,7 @@ target_include_directories(${NAME} PRIVATE
 target_link_libraries(${NAME} PRIVATE
     Vulkan::Vulkan
     ktx
+    minilog
     ${SDL_LIBRARY}
     ${Slang_LIBRARY}
 )
