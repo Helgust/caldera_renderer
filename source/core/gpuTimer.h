@@ -60,14 +60,20 @@ class GpuTimer {
       if (passCount > 0) {
         std::vector<uint64_t> raw(passCount * 2);
         const uint32_t firstQuery = frameIndex_ * maxPassesPerFrame_ * 2;
-        vkGetQueryPoolResults(device_, pool_, firstQuery, passCount * 2,
-                              raw.size() * sizeof(uint64_t), raw.data(),
-                              sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
-        lastResults_.clear();
-        for (uint32_t i = 0; i < passCount; ++i) {
-          const uint64_t ticks = raw[i * 2 + 1] - raw[i * 2];
-          lastResults_.push_back(
-            {namesByFrame_[frameIndex_][i], ticks * period_ / 1.0e6f});
+        const VkResult r =
+          vkGetQueryPoolResults(device_, pool_, firstQuery, passCount * 2,
+                                raw.size() * sizeof(uint64_t), raw.data(),
+                                sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
+        if (r == VK_SUCCESS) {
+          lastResults_.clear();
+          for (uint32_t i = 0; i < passCount; ++i) {
+            const uint64_t ticks = raw[i * 2 + 1] - raw[i * 2];
+            lastResults_.push_back(
+              {namesByFrame_[frameIndex_][i], ticks * period_ / 1.0e6f});
+          }
+        } else if (r != VK_NOT_READY) {
+          vkCheck(
+            r);  // genuine errors stay fatal; NOT_READY just keeps stale numbers
         }
       }
     }
