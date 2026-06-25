@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "assert.h"
+#include "core/log.h"
 #include "core/vulkanContext.h"
 
 namespace caldera {
@@ -31,6 +33,24 @@ class GpuTimer {
     vkGetPhysicalDeviceProperties2(ctx.physicalDevice, &props);
     period_ = props.properties.limits.timestampPeriod;
 
+    uint32_t familyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(ctx.physicalDevice, &familyCount,
+                                             nullptr);
+    std::vector<VkQueueFamilyProperties> families(familyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(ctx.physicalDevice, &familyCount,
+                                             families.data());
+
+    if (families[ctx.graphicsFamily].timestampValidBits != 0) {
+      validTimestampValidBitsMask_ = ~uint64_t(0);
+      validTimestampValidBitsMask_ =
+        validTimestampValidBitsMask_ >>
+        (64 - families[ctx.graphicsFamily].timestampValidBits);
+    } else {
+      logWarn(
+        "[GPU Timer] The selected device does not support timestamp queries!");
+      return;
+    }
+
     const VkQueryPoolCreateInfo poolCI{
       .sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
       .queryType = VK_QUERY_TYPE_TIMESTAMP,
@@ -40,6 +60,7 @@ class GpuTimer {
     namesByFrame_.assign(framesInFlight_, {});
     passCountByFrame_.assign(framesInFlight_, 0);
     submittedByFrame_.assign(framesInFlight_, false);
+    enabled_ = true;
   }
 
   void destroy() {
@@ -52,6 +73,9 @@ class GpuTimer {
   // Call once per frame, after the frame fence has been waited on (so the
   // pool slots for this frameIndex are safe to read and reset).
   void beginFrame(VkCommandBuffer cb, uint32_t frame_index) {
+    if (!enabled_) {
+      return;
+    }
     frameIndex_ = frame_index;
 
     // Readback any timestamps we wrote the last time this slot was used.
@@ -67,7 +91,8 @@ class GpuTimer {
         if (r == VK_SUCCESS) {
           lastResults_.clear();
           for (uint32_t i = 0; i < passCount; ++i) {
-            const uint64_t ticks = raw[i * 2 + 1] - raw[i * 2];
+            const uint64_t ticks =
+              (raw[i * 2 + 1] - raw[i * 2]) & validTimestampValidBitsMask_;
             lastResults_.push_back(
               {namesByFrame_[frameIndex_][i], ticks * period_ / 1.0e6f});
           }
@@ -87,7 +112,7 @@ class GpuTimer {
   }
 
   void beginPass(VkCommandBuffer cb, const char* name) {
-    if (passCount_ >= maxPassesPerFrame_)
+    if (!enabled_ || passCount_ >= maxPassesPerFrame_)
       return;
     const uint32_t slot = frameIndex_ * maxPassesPerFrame_ * 2 + passCount_ * 2;
     vkCmdWriteTimestamp2(cb, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, pool_, slot);
@@ -95,7 +120,7 @@ class GpuTimer {
   }
 
   void endPass(VkCommandBuffer cb) {
-    if (passCount_ >= maxPassesPerFrame_)
+    if (!enabled_ || passCount_ >= maxPassesPerFrame_)
       return;
     const uint32_t slot =
       frameIndex_ * maxPassesPerFrame_ * 2 + passCount_ * 2 + 1;
@@ -107,6 +132,9 @@ class GpuTimer {
   // after all passes were recorded). Marks the slot as having data to read
   // the next time this frameIndex comes around.
   void endFrame() {
+    if (!enabled_) {
+      return;
+    }
     passCountByFrame_[frameIndex_] = passCount_;
     submittedByFrame_[frameIndex_] = true;
   }
@@ -119,6 +147,9 @@ class GpuTimer {
   uint32_t framesInFlight_{0};
   uint32_t maxPassesPerFrame_{0};
   float period_{1.0f};  // nanoseconds per tick
+  bool enabled_ = false;
+
+  uint64_t validTimestampValidBitsMask_{0};
 
   uint32_t frameIndex_{0};
   uint32_t passCount_{0};
