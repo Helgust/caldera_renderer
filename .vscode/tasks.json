@@ -148,6 +148,37 @@
       "options": {
         "cwd": "${workspaceFolder}"
       }
+    },
+    {
+      "label": "Compile shaders",
+      "type": "process",
+      "command": "cmd.exe",
+      "args": ["/c", "tools\\compile_shaders.bat"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": {
+        "owner": "slang",
+        "fileLocation": "absolute",
+        "pattern": [
+          {
+            "regexp": "^(error|warning)\\[?\\w*\\]?:\\s+(.*)$",
+            "severity": 1,
+            "message": 2
+          },
+          {
+            "regexp": "^\\s*-->\\s+(.+):(\\d+):(\\d+)\\s*$",
+            "file": 1,
+            "line": 2,
+            "column": 3
+          }
+        ]
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
     }
   ]
 }
