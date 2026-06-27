@@ -102,21 +102,43 @@ set(IMGUI_SRC
     ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
 )
 
+# Build ImGui as its own target so engine-only warning flags (-Wshadow-all)
+# don't fire on third-party sources we don't own.
+add_library(imgui_backend STATIC ${IMGUI_SRC})
+
+# PUBLIC: our code (ui/imguiLayer.cpp, main.cpp) includes these headers, so the
+# include dirs + volk-routing defines must propagate to the exe. The backend
+# header compiles to different signatures with vs. without USE_VOLK, so the
+# define has to be identical on both sides of the link boundary.
+target_include_directories(imgui_backend PUBLIC
+    ${imgui_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}/backends
+)
+target_compile_definitions(imgui_backend PUBLIC
+    VK_NO_PROTOTYPES
+    IMGUI_IMPL_VULKAN_USE_VOLK
+    IMGUI_IMPL_VULKAN_VOLK_FILENAME=<volk/volk.h>
+)
+
+# PRIVATE: only the backend .cpp need volk/SDL3 headers to compile; the exe
+# already carries this include for its own volk/vma/slang use. SDL is an
+# implementation dependency of the SDL3 backend.
+target_include_directories(imgui_backend PRIVATE
+    $ENV{VULKAN_SDK}/Include
+)
+target_link_libraries(imgui_backend PRIVATE ${SDL_LIBRARY})
+
 # ----------------------------------
 # Executable
 # ----------------------------------
 
 add_executable(${NAME}
     ${SOURCES}
-    ${IMGUI_SRC}
 )
+target_compile_options(${NAME} PRIVATE -Wshadow-all)
 
 target_compile_definitions(${NAME} PRIVATE
     VK_NO_PROTOTYPES
-    # Make the ImGui Vulkan backend resolve entrypoints through volk instead
-    # of linking Vulkan prototypes (the rest of the engine uses VK_NO_PROTOTYPES).
-    IMGUI_IMPL_VULKAN_USE_VOLK
-    IMGUI_IMPL_VULKAN_VOLK_FILENAME=<volk/volk.h>
     ASSET_PATH="${CMAKE_SOURCE_DIR}/assets/"
     SHADER_PATH="${CMAKE_SOURCE_DIR}/shaders/"
     CALDERA_ROOT_DIR="${CMAKE_SOURCE_DIR}"
@@ -131,16 +153,17 @@ set_target_properties(${NAME} PROPERTIES
 target_include_directories(${NAME} PRIVATE
     source/                        # lets includes like "core/vulkanContext.h" resolve
     ${tinygltf_SOURCE_DIR}         # for tiny_gltf.h in sceneLoader.cpp
-    ${imgui_SOURCE_DIR}
-    ${imgui_SOURCE_DIR}/backends
     $ENV{VULKAN_SDK}/Include       # for volk, vma, slang headers
     ${fetch_ktx_SOURCE_DIR}/include
 )
+# imgui include dirs come in transitively as PUBLIC usage requirements of
+# imgui_backend, so they're no longer listed here.
 
 target_link_libraries(${NAME} PRIVATE
     Vulkan::Vulkan
     ktx
     minilog
+    imgui_backend
     ${SDL_LIBRARY}
     ${Slang_LIBRARY}
 )
