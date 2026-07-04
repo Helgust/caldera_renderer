@@ -23,8 +23,7 @@ struct VSOutput {
     float3 Factor;
     float3 LightVec;
     float3 ViewVec;
-    uint32_t InstanceIndex;
-    uint32_t TexIndex;  // InstanceIndex clamped to the available texture count
+    uint32_t TexIndex;  // instance index clamped to the available texture count
 };
 
 [shader("vertex")]
@@ -35,7 +34,6 @@ VSOutput main(VSInput input, uniform ShaderData *shaderData, uint instanceIndex 
     output.UV = input.UV;
     output.Pos = mul(shaderData->projection, mul(shaderData->view, mul(modelMat, float4(input.Pos.xyz, 1.0))));
     output.Factor = (shaderData->selected == instanceIndex ? 3.0f : 1.0f);
-    output.InstanceIndex = instanceIndex;
     // Clamp the texture lookup: fewer images than instances would otherwise
     // read past the descriptor array. max(count,1) guards the uint underflow.
     uint texCount = max(shaderData->textureCount, 1u);
