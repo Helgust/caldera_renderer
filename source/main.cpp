@@ -52,7 +52,7 @@ struct ShaderData {
   glm::mat4 projection;
   glm::mat4 view;
   glm::mat4 model[3];
-  glm::vec4 lightPos{0.0f, -10.0f, 10.0f, 0.0f};
+  glm::vec4 lightPos{0.0f, 10.0f, 10.0f, 0.0f};
   uint32_t selected{1};
   uint32_t textureCount{0};  // clamps the per-instance texture index in-shader
 };
@@ -538,8 +538,14 @@ int main(int argc, char* argv[]) {
         FgUsage::DEPTH_ATTACHMENT,
         {.clearValue{.depthStencil{1.0f, 0}}}}},
       [&](VkCommandBuffer cb) {
-        VkViewport vp{.width = static_cast<float>(swapchain.extent.width),
-                      .height = static_cast<float>(swapchain.extent.height),
+        // Vulkan's clip-space +Y points down, opposite of glm's GL-style
+        // projection, so a plain viewport renders the scene upside down. A
+        // negative-height viewport with the origin moved to the bottom flips
+        // it back (world +Y up) — the idiomatic fix. The light default no
+        // longer has to sit below the model to compensate.
+        VkViewport vp{.y = static_cast<float>(swapchain.extent.height),
+                      .width = static_cast<float>(swapchain.extent.width),
+                      .height = -static_cast<float>(swapchain.extent.height),
                       .minDepth = 0.0f,
                       .maxDepth = 1.0f};
         vkCmdSetViewport(cb, 0, 1, &vp);
