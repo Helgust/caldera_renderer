@@ -133,7 +133,7 @@ int main(int argc, char* argv[]) {
   sdlCheck(SDL_Init(SDL_INIT_VIDEO));
   sdlCheck(SDL_Vulkan_LoadLibrary(NULL));
 
-  uint32_t deviceIndex = 0;
+  uint32_t deviceIndex = VulkanContext::kAutoSelectDevice;
   std::string scenePath =
     std::string(ASSET_PATH) + "scenes/DamagedHelmet/glTF/DamagedHelmet.gltf";
 
@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {
 
   // --- Core ---
   VulkanContext ctx;
-  ctx.init();
+  ctx.init(deviceIndex);
 
   SDL_Window* window = SDL_CreateWindow(
     "Caldera Renderer", 1280, 720, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);

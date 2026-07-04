@@ -39,7 +39,13 @@ struct VulkanContext {
   VmaAllocator allocator{VK_NULL_HANDLE};
   VkDebugUtilsMessengerEXT debugMessenger{VK_NULL_HANDLE};
 
-  void init();
+  // Sentinel for init(): ignore any explicit index and scan for a
+  // discrete-then-integrated GPU.
+  static constexpr uint32_t kAutoSelectDevice = UINT32_MAX;
+
+  // preferredIndex honours --device: if it is in range and the device can do
+  // graphics it is picked; otherwise init falls back to the auto scan.
+  void init(uint32_t preferredIndex = kAutoSelectDevice);
   void destroy();
 };
 

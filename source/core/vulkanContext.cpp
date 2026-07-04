@@ -59,7 +59,7 @@ static std::optional<uint32_t> findGraphicsFamily(VkPhysicalDevice candidate) {
   return {};
 }
 
-void VulkanContext::init() {
+void VulkanContext::init(uint32_t preferredIndex) {
   // Taken directly from your main() — Instance block
   volkInitialize();
 
@@ -125,37 +125,51 @@ void VulkanContext::init() {
   vkCheck(vkEnumeratePhysicalDevices(instance, &devCount, nullptr));
   std::vector<VkPhysicalDevice> devices(devCount);
   vkCheck(vkEnumeratePhysicalDevices(instance, &devCount, devices.data()));
-  VkPhysicalDevice discreteGpu = VK_NULL_HANDLE;
-  VkPhysicalDevice integratedGpu = VK_NULL_HANDLE;
-  for (VkPhysicalDevice candidate : devices) {
-    VkPhysicalDeviceProperties2 props{
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
-    vkGetPhysicalDeviceProperties2(candidate, &props);
 
-    // Only consider devices we can actually drive: a graphics queue (and
-    // present — see question below).
-    if (!findGraphicsFamily(candidate)) {
-      continue;
-    }
-
-    switch (props.properties.deviceType) {
-      case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-        discreteGpu = candidate;
-        break;  // best case — stop looking
-      case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-        integratedGpu = candidate;  // remember, keep looking for a discrete
-        break;
-      default:
-        break;
-    }
-
-    if (discreteGpu != VK_NULL_HANDLE) {
-      break;
-    }
+  // Honour an explicit --device index when it is in range and can actually
+  // drive graphics; otherwise warn and fall through to the auto scan.
+  if (preferredIndex != kAutoSelectDevice) {
+    if (preferredIndex < devCount &&
+        findGraphicsFamily(devices[preferredIndex]))
+      physicalDevice = devices[preferredIndex];
+    else
+      logWarn("Requested device index %u is unavailable; auto-selecting",
+              preferredIndex);
   }
 
-  physicalDevice =
-    (discreteGpu != VK_NULL_HANDLE) ? discreteGpu : integratedGpu;
+  if (physicalDevice == VK_NULL_HANDLE) {
+    VkPhysicalDevice discreteGpu = VK_NULL_HANDLE;
+    VkPhysicalDevice integratedGpu = VK_NULL_HANDLE;
+    for (VkPhysicalDevice candidate : devices) {
+      VkPhysicalDeviceProperties2 props{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+      vkGetPhysicalDeviceProperties2(candidate, &props);
+
+      // Only consider devices we can actually drive: a graphics queue (and
+      // present — see question below).
+      if (!findGraphicsFamily(candidate)) {
+        continue;
+      }
+
+      switch (props.properties.deviceType) {
+        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+          discreteGpu = candidate;
+          break;  // best case — stop looking
+        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+          integratedGpu = candidate;  // remember, keep looking for a discrete
+          break;
+        default:
+          break;
+      }
+
+      if (discreteGpu != VK_NULL_HANDLE) {
+        break;
+      }
+    }
+
+    physicalDevice =
+      (discreteGpu != VK_NULL_HANDLE) ? discreteGpu : integratedGpu;
+  }
   CALDERA_ASSERT_MSG(physicalDevice != VK_NULL_HANDLE, "No suitable GPU found");
   graphicsFamily = findGraphicsFamily(physicalDevice).value();
 
