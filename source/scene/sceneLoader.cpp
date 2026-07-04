@@ -16,7 +16,14 @@ Scene SceneLoader::load(const std::string& path) {
   std::string err;
   std::string warn;
 
-  const bool loaded = loader.LoadASCIIFromFile(&model, &err, &warn, path);
+  // .glb is a binary container; .gltf is JSON. tinygltf has a separate entry
+  // point per form, so dispatch on the extension instead of only ever
+  // parsing ASCII (which silently failed to open every .glb launch option).
+  const bool isBinary =
+    path.size() >= 4 && path.compare(path.size() - 4, 4, ".glb") == 0;
+  const bool loaded = isBinary
+                        ? loader.LoadBinaryFromFile(&model, &err, &warn, path)
+                        : loader.LoadASCIIFromFile(&model, &err, &warn, path);
 
   if (!warn.empty())
     std::cout << "glTF warning: " << warn << "\n";

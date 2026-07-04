@@ -135,7 +135,7 @@ int main(int argc, char* argv[]) {
 
   uint32_t deviceIndex = 0;
   std::string scenePath =
-    std::string(ASSET_PATH) + "scenes/damaged-helmet/damaged-helmet.gltf";
+    std::string(ASSET_PATH) + "scenes/DamagedHelmet/glTF/DamagedHelmet.gltf";
 
   {
     std::string cmdLine;
