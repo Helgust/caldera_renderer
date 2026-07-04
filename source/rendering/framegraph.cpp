@@ -87,10 +87,13 @@ FgResource FrameGraph::createImage(const FgResourceDesc& desc) {
   r.state = {};
   r.owned = true;
   resources_.push_back(std::move(r));
-  setObjectName(ctx_.device, (uint64_t)r.image.handle, VK_OBJECT_TYPE_IMAGE,
+  // Read the image back out of the stored resource, not `r`: it was just
+  // moved from. (Works today only because Image is trivially copyable.)
+  const Resource& added = resources_.back();
+  setObjectName(ctx_.device, (uint64_t)added.image.handle, VK_OBJECT_TYPE_IMAGE,
                 desc.name);
-  setObjectName(ctx_.device, (uint64_t)r.image.view, VK_OBJECT_TYPE_IMAGE_VIEW,
-                desc.name);
+  setObjectName(ctx_.device, (uint64_t)added.image.view,
+                VK_OBJECT_TYPE_IMAGE_VIEW, desc.name);
   return static_cast<FgResource>(resources_.size() - 1);
 }
 
@@ -198,6 +201,17 @@ void FrameGraph::execute(VkCommandBuffer cb, GpuTimer* timer) {
 
 void FrameGraph::reset() {
   for (Resource& r : resources_) {
+    // Tripwire. The graph is loop-local, so ~FrameGraph -> reset() runs right
+    // after submit, before the frame fence proves the GPU is done. Destroying
+    // a graph-owned (transient) image here is a use-after-free. It is safe
+    // today only because every resource is imported (owned == false). Before
+    // createImage() is used for real, the graph needs GPU-lifetime tracking
+    // (a per-frame deletion queue, or hoist the graph out of the render loop).
+    CALDERA_ASSERT_MSG(!r.owned,
+                       "FrameGraph owns transient image '%s' but has no "
+                       "GPU-lifetime tracking; destroying it here races the "
+                       "in-flight frame",
+                       r.desc.name);
     if (r.owned)
       r.image.destroy(ctx_.device, ctx_.allocator);
   }
