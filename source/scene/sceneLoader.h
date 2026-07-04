@@ -46,7 +46,7 @@ namespace caldera {
 
 struct Mesh {
   std::vector<Vertex> vertices;
-  std::vector<uint16_t> indices;
+  std::vector<uint32_t> indices;
 };
 
 struct ImageData {

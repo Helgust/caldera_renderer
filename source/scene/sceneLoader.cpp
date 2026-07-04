@@ -26,7 +26,7 @@ Scene SceneLoader::load(const std::string& path) {
                      err.empty() ? "(no detail)" : err.c_str());
 
   Scene scene;
-  std::unordered_map<Vertex, uint16_t> uniqueVertices;
+  std::unordered_map<Vertex, uint32_t> uniqueVertices;
 
   for (const auto& mesh : model.meshes) {
     for (const auto& primitive : mesh.primitives) {
@@ -71,14 +71,13 @@ Scene SceneLoader::load(const std::string& path) {
            .data[indexBufferView.byteOffset + indexAccessor.byteOffset];
 
       for (size_t i = 0; i < indexAccessor.count; i++) {
-        uint16_t index = 0;
+        uint32_t index = 0;
         if (indexAccessor.componentType ==
             TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
           index = reinterpret_cast<const uint16_t*>(indexData)[i];
         } else if (indexAccessor.componentType ==
                    TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
-          index = static_cast<uint16_t>(
-            reinterpret_cast<const uint32_t*>(indexData)[i]);
+          index = reinterpret_cast<const uint32_t*>(indexData)[i];
         } else if (indexAccessor.componentType ==
                    TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
           index = reinterpret_cast<const uint8_t*>(indexData)[i];
@@ -124,7 +123,7 @@ Scene SceneLoader::load(const std::string& path) {
 
         if (!uniqueVertices.contains(vertex)) {
           uniqueVertices[vertex] =
-            static_cast<uint16_t>(scene.mesh.vertices.size());
+            static_cast<uint32_t>(scene.mesh.vertices.size());
           scene.mesh.vertices.push_back(vertex);
         }
         scene.mesh.indices.push_back(uniqueVertices[vertex]);

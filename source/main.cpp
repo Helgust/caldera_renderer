@@ -206,7 +206,7 @@ int main(int argc, char* argv[]) {
   const auto& vertices = scene.mesh.vertices;
   const auto& indices = scene.mesh.indices;
   VkDeviceSize vBufSize = sizeof(Vertex) * vertices.size();
-  VkDeviceSize iBufSize = sizeof(uint16_t) * indices.size();
+  VkDeviceSize iBufSize = sizeof(uint32_t) * indices.size();
 
   Buffer geometryBuffer = Buffer::createHostVisible(
     ctx.allocator, vBufSize + iBufSize,
@@ -532,7 +532,7 @@ int main(int argc, char* argv[]) {
         VkDeviceSize vOffset{0};
         vkCmdBindVertexBuffers(cb, 0, 1, &geometryBuffer.handle, &vOffset);
         vkCmdBindIndexBuffer(cb, geometryBuffer.handle, vBufSize,
-                             VK_INDEX_TYPE_UINT16);
+                             VK_INDEX_TYPE_UINT32);
         vkCmdPushConstants(
           cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
           sizeof(VkDeviceAddress),
