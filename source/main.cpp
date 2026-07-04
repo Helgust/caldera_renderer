@@ -404,7 +404,7 @@ int main(int argc, char* argv[]) {
                                     event.type == SDL_EVENT_MOUSE_BUTTON_DOWN))
         continue;  // ImGui is using the cursor; don't move the camera
       if (event.type == SDL_EVENT_MOUSE_MOTION &&
-          event.button.button == SDL_BUTTON_LEFT) {
+          (event.motion.state & SDL_BUTTON_LMASK)) {
         objectRotations[shaderData.selected].x -=
           (float)event.motion.yrel * elapsedTime;
         objectRotations[shaderData.selected].y +=
