@@ -39,6 +39,12 @@ using namespace caldera;
 // -----------------------------------------------------------------------
 constexpr uint32_t kFramesInFlight{2};
 
+// Mouse deltas (motion rel, wheel ticks) are already frame-rate independent,
+// so they scale by a constant sensitivity — not by delta-time, which would
+// make the response depend on FPS.
+constexpr float kRotateSensitivity{0.005f};  // radians per pixel
+constexpr float kZoomStep{0.5f};             // camera Z units per wheel tick
+
 // -----------------------------------------------------------------------
 // Per-frame shader data (passed via BDA push constant)
 // -----------------------------------------------------------------------
@@ -372,7 +378,6 @@ int main(int argc, char* argv[]) {
   bool updateSwapchain{false};
   bool quit{false};
   bool minimized{false};
-  uint64_t lastTime{SDL_GetTicks()};
 
   auto onRecreate = [&]() {
     sdlCheck(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
@@ -394,8 +399,6 @@ int main(int argc, char* argv[]) {
   while (!quit) {
 
     // Events
-    float elapsedTime = (SDL_GetTicks() - lastTime) / 1000.0f;
-    lastTime = SDL_GetTicks();
     for (SDL_Event event; SDL_PollEvent(&event);) {
       ui.processEvent(event);
       if (event.type == SDL_EVENT_QUIT) {
@@ -415,12 +418,12 @@ int main(int argc, char* argv[]) {
       if (event.type == SDL_EVENT_MOUSE_MOTION &&
           (event.motion.state & SDL_BUTTON_LMASK)) {
         objectRotations[shaderData.selected].x -=
-          (float)event.motion.yrel * elapsedTime;
+          (float)event.motion.yrel * kRotateSensitivity;
         objectRotations[shaderData.selected].y +=
-          (float)event.motion.xrel * elapsedTime;
+          (float)event.motion.xrel * kRotateSensitivity;
       }
       if (event.type == SDL_EVENT_MOUSE_WHEEL)
-        camPos.z += (float)event.wheel.y * elapsedTime * 10.0f;
+        camPos.z += (float)event.wheel.y * kZoomStep;
       if (event.type == SDL_EVENT_KEY_DOWN) {
         if (event.key.key == SDLK_PLUS || event.key.key == SDLK_KP_PLUS)
           shaderData.selected =
