@@ -367,6 +367,10 @@ int main(int argc, char* argv[]) {
     sdlCheck(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
     vkCheck(vkDeviceWaitIdle(ctx.device));
     swapchain.recreate(ctx, surface, windowSize);
+    // The driver may change the image count on recreate; rebuild the
+    // per-image render semaphores so indexing by image index stays in bounds.
+    sync.recreateRenderSemaphores(
+      ctx.device, static_cast<uint32_t>(swapchain.images.size()));
     for (int i = 0; i < depthImages.size(); i++) {
       depthImages[i].destroy(ctx.device, ctx.allocator);
       depthImages[i] = Image::create2D(

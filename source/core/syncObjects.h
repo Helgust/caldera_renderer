@@ -30,6 +30,22 @@ struct SyncObjects {
     }
   }
 
+  // Rebuild the per-image render semaphores for a new swapchain image count.
+  // The driver may hand back a different count on recreate, and indexing
+  // renderSemaphores by the acquired image index would then be out of bounds.
+  // Caller must have waited for the device to be idle first (no in-flight use).
+  void recreateRenderSemaphores(VkDevice device,
+                                uint32_t swapchain_image_count) {
+    for (auto& sem : renderSemaphores)
+      vkDestroySemaphore(device, sem, nullptr);
+
+    VkSemaphoreCreateInfo semCI{.sType =
+                                  VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+    renderSemaphores.assign(swapchain_image_count, VK_NULL_HANDLE);
+    for (auto& sem : renderSemaphores)
+      vkCheck(vkCreateSemaphore(device, &semCI, nullptr, &sem));
+  }
+
   void waitAndResetFence(VkDevice device, uint32_t frame_index) {
     vkCheck(vkWaitForFences(device, 1, &frameFences[frame_index], VK_TRUE,
                             UINT64_MAX));
