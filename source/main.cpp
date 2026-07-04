@@ -436,8 +436,12 @@ int main(int argc, char* argv[]) {
         updateSwapchain = true;
     }
 
-    if (minimized)
+    if (minimized) {
+      // Nothing to render while minimized. Sleep briefly instead of spinning
+      // the poll loop, which would peg a core at 100%.
+      SDL_Delay(10);
       continue;
+    }
 
     // Swapchain recreate
     if (updateSwapchain) {
