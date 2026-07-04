@@ -188,10 +188,12 @@ int main(int argc, char* argv[]) {
 
   std::array<Image, kFramesInFlight> depthImages;
   for (size_t i = 0; i < depthImages.size(); ++i) {
+    // Size from swapchain.extent, not windowSize: the render area, scissor and
+    // imports all use the extent, which can legitimately differ from the SDL
+    // window size (DPI scaling, resize races). One source of truth avoids a
+    // depth attachment smaller than the render area.
     depthImages[i] = Image::create2D(
-      ctx.allocator, ctx.device, depthFormat,
-      {static_cast<uint32_t>(windowSize.x),
-       static_cast<uint32_t>(windowSize.y)},
+      ctx.allocator, ctx.device, depthFormat, swapchain.extent,
       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
     std::string depthName = "depth[" + std::to_string(i) + "]";
     setObjectName(ctx.device, (uint64_t)depthImages[i].handle,
@@ -374,9 +376,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < depthImages.size(); i++) {
       depthImages[i].destroy(ctx.device, ctx.allocator);
       depthImages[i] = Image::create2D(
-        ctx.allocator, ctx.device, depthFormat,
-        {static_cast<uint32_t>(windowSize.x),
-         static_cast<uint32_t>(windowSize.y)},
+        ctx.allocator, ctx.device, depthFormat, swapchain.extent,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
   };
@@ -454,9 +454,10 @@ int main(int argc, char* argv[]) {
     }
 
     // Update transforms
-    shaderData.projection =
-      glm::perspective(glm::radians(45.0f),
-                       (float)windowSize.x / (float)windowSize.y, 0.1f, 32.0f);
+    shaderData.projection = glm::perspective(
+      glm::radians(45.0f),
+      (float)swapchain.extent.width / (float)swapchain.extent.height, 0.1f,
+      32.0f);
     shaderData.view = glm::translate(glm::mat4(1.0f), camPos);
     for (int i = 0; i < 3; i++) {
       auto instancePos = glm::vec3((float)(i - 1) * 3.0f, 0.0f, 0.0f);
@@ -521,8 +522,8 @@ int main(int argc, char* argv[]) {
         FgUsage::DEPTH_ATTACHMENT,
         {.clearValue{.depthStencil{1.0f, 0}}}}},
       [&](VkCommandBuffer cb) {
-        VkViewport vp{.width = static_cast<float>(windowSize.x),
-                      .height = static_cast<float>(windowSize.y),
+        VkViewport vp{.width = static_cast<float>(swapchain.extent.width),
+                      .height = static_cast<float>(swapchain.extent.height),
                       .minDepth = 0.0f,
                       .maxDepth = 1.0f};
         vkCmdSetViewport(cb, 0, 1, &vp);
