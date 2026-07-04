@@ -13,6 +13,7 @@ struct ShaderData {
     float4x4 model[3];
     float4 lightPos;
     uint32_t selected;
+    uint32_t textureCount;
 };
 
 struct VSOutput {
@@ -23,6 +24,7 @@ struct VSOutput {
     float3 LightVec;
     float3 ViewVec;
     uint32_t InstanceIndex;
+    uint32_t TexIndex;  // InstanceIndex clamped to the available texture count
 };
 
 [shader("vertex")]
@@ -34,6 +36,10 @@ VSOutput main(VSInput input, uniform ShaderData *shaderData, uint instanceIndex 
     output.Pos = mul(shaderData->projection, mul(shaderData->view, mul(modelMat, float4(input.Pos.xyz, 1.0))));
     output.Factor = (shaderData->selected == instanceIndex ? 3.0f : 1.0f);
     output.InstanceIndex = instanceIndex;
+    // Clamp the texture lookup: fewer images than instances would otherwise
+    // read past the descriptor array. max(count,1) guards the uint underflow.
+    uint texCount = max(shaderData->textureCount, 1u);
+    output.TexIndex = min(instanceIndex, texCount - 1);
     // Calculate view vectors required for lighting. fragPos is view-space,
     // so the light must be brought into view space too; subtracting a
     // world-space light made the light ride along with the camera.
@@ -54,7 +60,7 @@ float4 main(VSOutput input) {
     float3 diffuse = max(dot(N, L), 0.0025);
     float3 specular = pow(max(dot(R, V), 0.0), 16.0) * 0.75;
     // Sample from texture
-    float3 color = textures[NonUniformResourceIndex(input.InstanceIndex)].Sample(input.UV).rgb * input.Factor;
+    float3 color = textures[NonUniformResourceIndex(input.TexIndex)].Sample(input.UV).rgb * input.Factor;
     float4 result = float4(diffuse * color.rgb + specular, 1.0);
 
     return pow(result, 1.0/2.2);

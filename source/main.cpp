@@ -48,6 +48,7 @@ struct ShaderData {
   glm::mat4 model[3];
   glm::vec4 lightPos{0.0f, -10.0f, 10.0f, 0.0f};
   uint32_t selected{1};
+  uint32_t textureCount{0};  // clamps the per-instance texture index in-shader
 };
 
 // -----------------------------------------------------------------------
@@ -243,6 +244,13 @@ int main(int argc, char* argv[]) {
                   VK_OBJECT_TYPE_BUFFER, n.c_str());
   }
 
+  // The shader samples one texture per instance and the descriptor pool sizes
+  // from this count; an empty scene would build a descriptorCount = 0 pool
+  // (invalid) and index a zero-length array. Require at least one image.
+  CALDERA_ASSERT_MSG(!textures.empty(),
+                     "scene '%s' has no images; need at least one texture",
+                     scenePath.c_str());
+
   // --- Descriptors ---
   VkDescriptorBindingFlags descVariableFlag{
     VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT};
@@ -356,6 +364,7 @@ int main(int argc, char* argv[]) {
 
   // --- State ---
   ShaderData shaderData{};
+  shaderData.textureCount = static_cast<uint32_t>(textures.size());
   glm::vec3 camPos{0.0f, 0.0f, -6.0f};
   glm::vec3 objectRotations[3]{};
   uint32_t frameInFlightIndex{0};
