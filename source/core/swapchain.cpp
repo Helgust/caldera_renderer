@@ -21,6 +21,8 @@ void Swapchain::init(VulkanContext& ctx, VkSurfaceKHR surface,
   supportedFormats.resize(supportedCount);
   vkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(
     ctx.physicalDevice, surface, &supportedCount, supportedFormats.data()));
+  CALDERA_ASSERT_MSG(supportedCount > 0,
+                     "surface reports no supported formats");
 
   bool formatFound = false;
   const uint32_t surfaceFormatCount = surfaceImageFormats.size();
@@ -42,11 +44,13 @@ void Swapchain::init(VulkanContext& ctx, VkSurfaceKHR surface,
 
   // Default to the first supported pair. Take its colorspace too: the surface
   // only guarantees format+colorspace together, so we must never pair a chosen
-  // format with an assumed colorspace.
+  // format with an assumed colorspace. Any supported pair is presentable, so
+  // warn and keep going rather than assert (which was live in every build and
+  // made this "fallback" unreachable).
   if (!formatFound) {
     format = supportedFormats[0].format;
     colorSpace = supportedFormats[0].colorSpace;
-    CALDERA_ASSERT_MSG(false, "no preferred surface format; fell back to [0]");
+    logWarn("swapchain: no preferred surface format; using supported[0]");
   }
 
   VkSurfaceCapabilitiesKHR caps{};
@@ -82,7 +86,9 @@ void Swapchain::init(VulkanContext& ctx, VkSurfaceKHR surface,
     .imageExtent = extent,
     .imageArrayLayers = 1,
     .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-    .preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+    // Pass through the surface's current transform instead of forcing
+    // IDENTITY, which some platforms (rotated displays) don't support.
+    .preTransform = caps.currentTransform,
     .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
     .presentMode = VK_PRESENT_MODE_FIFO_KHR};
 
@@ -121,6 +127,7 @@ void Swapchain::recreate(VulkanContext& ctx, VkSurfaceKHR surface,
 
   lastCI_.oldSwapchain = handle;
   lastCI_.imageExtent = extent;
+  lastCI_.preTransform = caps.currentTransform;  // may change on rotation
 
   VkSwapchainKHR newSwapchain{VK_NULL_HANDLE};
   vkCheck(vkCreateSwapchainKHR(ctx.device, &lastCI_, nullptr, &newSwapchain));
