@@ -34,9 +34,12 @@ VSOutput main(VSInput input, uniform ShaderData *shaderData, uint instanceIndex 
     output.Pos = mul(shaderData->projection, mul(shaderData->view, mul(modelMat, float4(input.Pos.xyz, 1.0))));
     output.Factor = (shaderData->selected == instanceIndex ? 3.0f : 1.0f);
     output.InstanceIndex = instanceIndex;
-    // Calculate view vectors required for lighting
+    // Calculate view vectors required for lighting. fragPos is view-space,
+    // so the light must be brought into view space too; subtracting a
+    // world-space light made the light ride along with the camera.
     float4 fragPos = mul(mul(shaderData->view, modelMat), float4(input.Pos.xyz, 1.0));
-    output.LightVec = shaderData->lightPos.xyz - fragPos.xyz;
+    float3 lightVS = mul(shaderData->view, float4(shaderData->lightPos.xyz, 1.0)).xyz;
+    output.LightVec = lightVS - fragPos.xyz;
     output.ViewVec = -fragPos.xyz;
     return output;
 }
