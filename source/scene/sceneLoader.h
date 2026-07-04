@@ -16,11 +16,15 @@ struct Vertex {
   glm::vec2 uv;
   glm::vec3 color;
 
+  // Exact (bit-for-bit) equality. Two requirements force this:
+  //   1. unordered_map needs equal keys to hash equal; std::hash below hashes
+  //      raw float bits, so equality must match those exact bits.
+  //   2. epsilon equality isn't transitive, so it's not a valid equivalence
+  //      relation for a hashed container in the first place.
+  // Identical glTF vertices are bit-identical, so no tolerance is needed.
   bool operator==(const Vertex& other) const {
-    return glm::all(glm::epsilonEqual(pos, other.pos, 0.0001f)) &&
-           glm::all(glm::epsilonEqual(normal, other.normal, 0.0001f)) &&
-           glm::all(glm::epsilonEqual(uv, other.uv, 0.0001f)) &&
-           glm::all(glm::epsilonEqual(color, other.color, 0.0001f));
+    return pos == other.pos && normal == other.normal && uv == other.uv &&
+           color == other.color;
   }
 };
 
