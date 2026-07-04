@@ -2,6 +2,7 @@
 #include <vma/vk_mem_alloc.h>
 #include <volk/volk.h>
 #include <cstring>
+#include "core/assert.h"
 
 namespace caldera {
 
@@ -21,6 +22,10 @@ struct Buffer {
                               VkBufferUsageFlags usage);
 
   void upload(const void* data, VkDeviceSize size) {
+    // Tripwire: a null mapping means the allocation didn't land in
+    // host-visible memory (see createHostVisible), so this memcpy would
+    // fault. Fail loudly here instead of crashing inside memcpy.
+    CALDERA_ASSERT(info.pMappedData);
     memcpy(info.pMappedData, data, static_cast<size_t>(size));
   }
 

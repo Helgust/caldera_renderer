@@ -11,9 +11,12 @@ Buffer Buffer::createHostVisible(VmaAllocator allocator, VkDeviceSize size,
                            .size = size,
                            .usage = usage};
 
+  // No ALLOW_TRANSFER_INSTEAD: that flag lets VMA pick non-HOST_VISIBLE
+  // memory, which leaves info.pMappedData null and makes upload() memcpy to
+  // null. The staging fallback its contract requires was never implemented,
+  // so this keeps the allocation host-visible and persistently mapped.
   VmaAllocationCreateInfo allocCI{
     .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
-             VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT |
              VMA_ALLOCATION_CREATE_MAPPED_BIT,
     .usage = VMA_MEMORY_USAGE_AUTO};
 
