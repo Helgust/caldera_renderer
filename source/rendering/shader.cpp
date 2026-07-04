@@ -29,11 +29,24 @@ ShaderModule ShaderModule::loadSlang(VkDevice device, slang::ISession* session,
                                      const std::string& module_name) {
   ShaderModule sm{};
 
+  // Capture diagnostics from both stages: without the out-param a typo in the
+  // .slang source returned a null module and this function dereferenced it
+  // with no message. Slang writes the human-readable error into the blob.
+  Slang::ComPtr<ISlangBlob> loadDiag;
   Slang::ComPtr<slang::IModule> slangModule{session->loadModuleFromSource(
-    module_name.c_str(), path.c_str(), nullptr, nullptr)};
+    module_name.c_str(), path.c_str(), nullptr, loadDiag.writeRef())};
+  CALDERA_ASSERT_MSG(
+    slangModule, "slang: failed to load '%s': %s", path.c_str(),
+    loadDiag ? (const char*)loadDiag->getBufferPointer() : "(no diagnostics)");
 
   Slang::ComPtr<ISlangBlob> spirv;
-  slangModule->getTargetCode(0, spirv.writeRef());
+  Slang::ComPtr<ISlangBlob> codeDiag;
+  const SlangResult codeResult =
+    slangModule->getTargetCode(0, spirv.writeRef(), codeDiag.writeRef());
+  CALDERA_ASSERT_MSG(
+    SLANG_SUCCEEDED(codeResult) && spirv, "slang: codegen failed for '%s': %s",
+    path.c_str(),
+    codeDiag ? (const char*)codeDiag->getBufferPointer() : "(no diagnostics)");
 
   VkShaderModuleCreateInfo shaderCI{
     .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
