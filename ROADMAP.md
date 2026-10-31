@@ -13,9 +13,9 @@ The project is intended to showcase the following competencies:
 
 This roadmap is divided into **4 major phases** that correspond roughly to development quarters.
 
-> **Detailed implementation tickets** (per-step goals, target files, verification criteria) live in
-> the Notion board: *Caldera Renderer — Development Roadmap*. Items tagged `CLR — Step X.Y` below
-> map 1:1 to those tickets. `TODO.md` holds the active near-term backlog.
+> **Detailed implementation tickets** (per-step goals, target files, verification criteria) and
+> their status live in the Obsidian base *Caldera Renderer — Development Roadmap*. Items tagged
+> `CLR — Step X.Y` below map 1:1 to those tickets. `TODO.md` holds the 2027 scope and milestones.
 
 ---
 
